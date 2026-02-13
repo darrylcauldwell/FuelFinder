@@ -1,0 +1,141 @@
+default_platform(:ios)
+
+platform :ios do
+
+  # ───────────────────────────────────────────
+  # Shared: API Key
+  # ───────────────────────────────────────────
+
+  def api_key
+    app_store_connect_api_key(
+      key_id: "2QUU3J6S3D",
+      issuer_id: "39bba98a-c143-49fe-ab48-839ff38b4edd",
+      key_filepath: "fastlane/AuthKey_2QUU3J6S3D.p8"
+    )
+  end
+
+  # ───────────────────────────────────────────
+  # Create app on App Store Connect
+  # ───────────────────────────────────────────
+
+  desc "Create the app on App Store Connect if it doesn't exist"
+  lane :create_app do
+    api_key
+    produce(
+      app_identifier: "dev.dreamfold.fuelfinder",
+      app_name: "FuelRoute",
+      language: "English",
+      app_version: "1.0.0",
+      sku: "dev.dreamfold.fuelfinder",
+      team_id: "N6BK2WX94Z",
+      platforms: ["ios"]
+    )
+  end
+
+  # ───────────────────────────────────────────
+  # Tests
+  # ───────────────────────────────────────────
+
+  desc "Run all tests"
+  lane :test do
+    run_tests(
+      project: "FuelFinder.xcodeproj",
+      scheme: "FuelFinder",
+      devices: ["iPhone 17 Pro"],
+      clean: true
+    )
+  end
+
+  # ───────────────────────────────────────────
+  # Screenshots
+  # ───────────────────────────────────────────
+
+  desc "Capture App Store screenshots on all devices"
+  lane :screenshots do
+    capture_screenshots(
+      project: "FuelFinder.xcodeproj",
+      scheme: "FuelFinder",
+      devices: [
+        "iPhone 16 Pro",
+        "iPhone 16 Pro Max",
+        "iPad Pro 13-inch (M4)"
+      ],
+      languages: ["en-GB"],
+      output_directory: "./fastlane/screenshots",
+      clear_previous_screenshots: true
+    )
+  end
+
+  # ───────────────────────────────────────────
+  # Build
+  # ───────────────────────────────────────────
+
+  desc "Build the app for release"
+  lane :build do
+    build_app(
+      scheme: "FuelFinder",
+      project: "FuelFinder.xcodeproj",
+      export_method: "app-store",
+      destination: "generic/platform=iOS",
+      output_directory: "./build",
+      output_name: "FuelFinder.ipa",
+      xcargs: "-allowProvisioningUpdates -authenticationKeyPath /Users/darrylcauldwell/.private_keys/AuthKey_2QUU3J6S3D.p8 -authenticationKeyID 2QUU3J6S3D -authenticationKeyIssuerID 39bba98a-c143-49fe-ab48-839ff38b4edd",
+      export_options: {
+        signingStyle: "automatic",
+        teamID: "N6BK2WX94Z"
+      }
+    )
+  end
+
+  # ───────────────────────────────────────────
+  # TestFlight
+  # ───────────────────────────────────────────
+
+  desc "Upload a new build to TestFlight"
+  lane :beta do
+    increment_build_number(xcodeproj: "FuelFinder.xcodeproj")
+    build
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true
+    )
+  end
+
+  # ───────────────────────────────────────────
+  # App Store Release
+  # ───────────────────────────────────────────
+
+  desc "Submit a new build to App Store Connect with metadata and screenshots"
+  lane :release do
+    increment_build_number(xcodeproj: "FuelFinder.xcodeproj")
+    build
+    upload_to_app_store(
+      api_key: api_key,
+      skip_screenshots: false,
+      skip_metadata: false,
+      force: true,
+      submit_for_review: false,
+      automatic_release: false,
+      precheck_include_in_app_purchases: false,
+      metadata_path: "./fastlane/metadata",
+      screenshots_path: "./fastlane/screenshots"
+    )
+  end
+
+  # ───────────────────────────────────────────
+  # Metadata only (no binary)
+  # ───────────────────────────────────────────
+
+  desc "Upload metadata and screenshots only"
+  lane :metadata do
+    upload_to_app_store(
+      api_key: api_key,
+      skip_binary_upload: true,
+      skip_screenshots: false,
+      force: true,
+      metadata_path: "./fastlane/metadata",
+      screenshots_path: "./fastlane/screenshots"
+    )
+  end
+
+end

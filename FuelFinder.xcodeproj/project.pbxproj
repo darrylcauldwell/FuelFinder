@@ -1,0 +1,717 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A1000001 /* FuelFinderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001; };
+		A1000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000002; };
+		A1000003 /* CoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000003; };
+		A1000004 /* FuelDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000004; };
+		A1000005 /* RouteStationFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000005; };
+		A1000006 /* RouteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000006; };
+		A1000007 /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000007; };
+		A1000008 /* FuelCarPlayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000008; };
+		A1000009 /* Station+Convenience.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000009; };
+		A1000013 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000015; };
+		A1000014 /* GlassDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000016; };
+		A1000015 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000017; };
+		A1000016 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000018; };
+		A1000010 /* MockData.json in Resources */ = {isa = PBXBuildFile; fileRef = B1000010; };
+		A1000011 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1000011; };
+		A1000012 /* FuelFinder.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = B1000012; };
+		A1000020 /* RouteStationFinderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000020; };
+		A1000021 /* FuelDataManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000021; };
+		A1000030 /* FuelFinderUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000030; };
+		A1000031 /* ScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000031; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C1000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D1000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E1000001;
+			remoteInfo = FuelFinder;
+		};
+		C1000002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D1000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E1000001;
+			remoteInfo = FuelFinder;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		B1000001 /* FuelFinderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuelFinderApp.swift; sourceTree = "<group>"; };
+		B1000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		B1000003 /* CoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataStack.swift; sourceTree = "<group>"; };
+		B1000004 /* FuelDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuelDataManager.swift; sourceTree = "<group>"; };
+		B1000005 /* RouteStationFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStationFinder.swift; sourceTree = "<group>"; };
+		B1000006 /* RouteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteView.swift; sourceTree = "<group>"; };
+		B1000007 /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlaySceneDelegate.swift; sourceTree = "<group>"; };
+		B1000008 /* FuelCarPlayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuelCarPlayManager.swift; sourceTree = "<group>"; };
+		B1000009 /* Station+Convenience.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Station+Convenience.swift"; sourceTree = "<group>"; };
+		B1000010 /* MockData.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = MockData.json; sourceTree = "<group>"; };
+		B1000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B1000012 /* FuelFinder.xcdatamodeld */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodeld; path = FuelFinder.xcdatamodeld; sourceTree = "<group>"; };
+		B1000013 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B1000014 /* FuelFinder.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FuelFinder.entitlements; sourceTree = "<group>"; };
+		B1000015 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
+		B1000016 /* GlassDesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassDesignSystem.swift; sourceTree = "<group>"; };
+		B1000017 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
+		B1000018 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
+		B1000020 /* RouteStationFinderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStationFinderTests.swift; sourceTree = "<group>"; };
+		B1000021 /* FuelDataManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuelDataManagerTests.swift; sourceTree = "<group>"; };
+		F1000001 /* FuelFinder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FuelFinder.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F1000002 /* FuelFinderTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FuelFinderTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1000030 /* FuelFinderUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuelFinderUITests.swift; sourceTree = "<group>"; };
+		B1000031 /* ScreenshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotTests.swift; sourceTree = "<group>"; };
+		F1000003 /* FuelFinderUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FuelFinderUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		FA000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FA000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FA000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		G1000001 = {
+			isa = PBXGroup;
+			children = (
+				G1000002 /* FuelFinder */,
+				G1000009 /* FuelFinderTests */,
+				G1000011 /* FuelFinderUITests */,
+				G1000010 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		G1000002 /* FuelFinder */ = {
+			isa = PBXGroup;
+			children = (
+				G1000003 /* Sources */,
+				G1000008 /* Resources */,
+				B1000011 /* Assets.xcassets */,
+				B1000012 /* FuelFinder.xcdatamodeld */,
+			);
+			path = FuelFinder;
+			sourceTree = "<group>";
+		};
+		G1000003 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				G1000004 /* App */,
+				G1000005 /* CoreData */,
+				G1000006 /* Networking */,
+				G1000007 /* RouteEngine */,
+				G10000V1 /* Views */,
+				G10000C1 /* CarPlay */,
+				G10000E1 /* Extensions */,
+				G10000U1 /* Utilities */,
+				G10000S1 /* Services */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		G1000004 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				B1000001 /* FuelFinderApp.swift */,
+				B1000002 /* ContentView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		G1000005 /* CoreData */ = {
+			isa = PBXGroup;
+			children = (
+				B1000003 /* CoreDataStack.swift */,
+			);
+			path = CoreData;
+			sourceTree = "<group>";
+		};
+		G1000006 /* Networking */ = {
+			isa = PBXGroup;
+			children = (
+				B1000004 /* FuelDataManager.swift */,
+			);
+			path = Networking;
+			sourceTree = "<group>";
+		};
+		G1000007 /* RouteEngine */ = {
+			isa = PBXGroup;
+			children = (
+				B1000005 /* RouteStationFinder.swift */,
+			);
+			path = RouteEngine;
+			sourceTree = "<group>";
+		};
+		G10000V1 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B1000006 /* RouteView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		G10000C1 /* CarPlay */ = {
+			isa = PBXGroup;
+			children = (
+				B1000007 /* CarPlaySceneDelegate.swift */,
+				B1000008 /* FuelCarPlayManager.swift */,
+			);
+			path = CarPlay;
+			sourceTree = "<group>";
+		};
+		G10000E1 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				B1000009 /* Station+Convenience.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		G10000U1 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				B1000015 /* AppColors.swift */,
+				B1000016 /* GlassDesignSystem.swift */,
+				B1000017 /* DesignTokens.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		G10000S1 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				B1000018 /* LocationService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		G1000008 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				B1000010 /* MockData.json */,
+				B1000013 /* Info.plist */,
+				B1000014 /* FuelFinder.entitlements */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		G1000009 /* FuelFinderTests */ = {
+			isa = PBXGroup;
+			children = (
+				B1000020 /* RouteStationFinderTests.swift */,
+				B1000021 /* FuelDataManagerTests.swift */,
+			);
+			path = FuelFinderTests;
+			sourceTree = "<group>";
+		};
+		G1000010 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F1000001 /* FuelFinder.app */,
+				F1000002 /* FuelFinderTests.xctest */,
+				F1000003 /* FuelFinderUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		G1000011 /* FuelFinderUITests */ = {
+			isa = PBXGroup;
+			children = (
+				B1000030 /* FuelFinderUITests.swift */,
+				B1000031 /* ScreenshotTests.swift */,
+			);
+			path = FuelFinderUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E1000001 /* FuelFinder */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = L1000001 /* Build configuration list for PBXNativeTarget "FuelFinder" */;
+			buildPhases = (
+				S1000001 /* Sources */,
+				FA000001 /* Frameworks */,
+				R1000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FuelFinder;
+			productName = FuelFinder;
+			productReference = F1000001 /* FuelFinder.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E1000002 /* FuelFinderTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = L1000002 /* Build configuration list for PBXNativeTarget "FuelFinderTests" */;
+			buildPhases = (
+				S1000002 /* Sources */,
+				FA000002 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DE000001 /* PBXTargetDependency */,
+			);
+			name = FuelFinderTests;
+			productName = FuelFinderTests;
+			productReference = F1000002 /* FuelFinderTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		E1000003 /* FuelFinderUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = L1000004 /* Build configuration list for PBXNativeTarget "FuelFinderUITests" */;
+			buildPhases = (
+				S1000003 /* Sources */,
+				FA000003 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DE000002 /* PBXTargetDependency */,
+			);
+			name = FuelFinderUITests;
+			productName = FuelFinderUITests;
+			productReference = F1000003 /* FuelFinderUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D1000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					E1000001 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					E1000002 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = E1000001;
+					};
+					E1000003 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = E1000001;
+					};
+				};
+			};
+			buildConfigurationList = L1000003 /* Build configuration list for PBXProject "FuelFinder" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = G1000001;
+			productRefGroup = G1000010 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E1000001 /* FuelFinder */,
+				E1000002 /* FuelFinderTests */,
+				E1000003 /* FuelFinderUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		R1000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000010 /* MockData.json in Resources */,
+				A1000011 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		S1000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000001 /* FuelFinderApp.swift in Sources */,
+				A1000002 /* ContentView.swift in Sources */,
+				A1000003 /* CoreDataStack.swift in Sources */,
+				A1000004 /* FuelDataManager.swift in Sources */,
+				A1000005 /* RouteStationFinder.swift in Sources */,
+				A1000006 /* RouteView.swift in Sources */,
+				A1000007 /* CarPlaySceneDelegate.swift in Sources */,
+				A1000008 /* FuelCarPlayManager.swift in Sources */,
+				A1000009 /* Station+Convenience.swift in Sources */,
+				A1000013 /* AppColors.swift in Sources */,
+				A1000014 /* GlassDesignSystem.swift in Sources */,
+				A1000015 /* DesignTokens.swift in Sources */,
+				A1000016 /* LocationService.swift in Sources */,
+				A1000012 /* FuelFinder.xcdatamodeld in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		S1000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000020 /* RouteStationFinderTests.swift in Sources */,
+				A1000021 /* FuelDataManagerTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		S1000003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000030 /* FuelFinderUITests.swift in Sources */,
+				A1000031 /* ScreenshotTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		DE000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E1000001 /* FuelFinder */;
+			targetProxy = C1000001 /* PBXContainerItemProxy */;
+		};
+		DE000002 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E1000001 /* FuelFinder */;
+			targetProxy = C1000002 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		/* Debug - Project */
+		X1000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		/* Release - Project */
+		X1000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 6.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		/* Debug - App Target */
+		X1000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FuelFinder/Resources/FuelFinder.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = N6BK2WX94Z;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FuelFinder/Resources/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = NO;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.dreamfold.fuelfinder;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		/* Release - App Target */
+		X1000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FuelFinder/Resources/FuelFinder.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = N6BK2WX94Z;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FuelFinder/Resources/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = NO;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.dreamfold.fuelfinder;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		/* Debug - Test Target */
+		X1000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.dreamfold.fuelfinder.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FuelFinder.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FuelFinder";
+			};
+			name = Debug;
+		};
+		/* Release - Test Target */
+		X1000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.dreamfold.fuelfinder.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FuelFinder.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FuelFinder";
+			};
+			name = Release;
+		};
+		/* Debug - UI Test Target */
+		X1000007 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.dreamfold.fuelfinder.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = FuelFinder;
+			};
+			name = Debug;
+		};
+		/* Release - UI Test Target */
+		X1000008 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.dreamfold.fuelfinder.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = FuelFinder;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		L1000001 /* Build configuration list for PBXNativeTarget "FuelFinder" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				X1000003 /* Debug */,
+				X1000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		L1000002 /* Build configuration list for PBXNativeTarget "FuelFinderTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				X1000005 /* Debug */,
+				X1000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		L1000003 /* Build configuration list for PBXProject "FuelFinder" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				X1000001 /* Debug */,
+				X1000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		L1000004 /* Build configuration list for PBXNativeTarget "FuelFinderUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				X1000007 /* Debug */,
+				X1000008 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = D1000001 /* Project object */;
+}

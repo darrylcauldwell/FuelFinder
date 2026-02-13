@@ -1,0 +1,1 @@
+The app launches with mock data enabled by default (Settings > Use Mock Data toggle). This demonstrates all features including route planning, fuel station display, price comparison, and the Add Stop re-routing flow. To test with live data, disable the mock data toggle — this requires a valid UK Fuel Finder API credential.

@@ -1,0 +1,162 @@
+[
+    {
+        "id": "station001",
+        "name": "Morrisons Colindale",
+        "brand": "Morrisons",
+        "lat": 51.5954,
+        "lon": -0.2491,
+        "address": "Capitol Way, London NW9 0EQ",
+        "amenities": ["car_wash", "air", "shop", "toilets"],
+        "prices": {
+            "unleaded": 1.42,
+            "super_unleaded": 1.55,
+            "diesel": 1.49,
+            "premium_diesel": 1.59
+        },
+        "updated": "2026-02-12T08:00:00Z"
+    },
+    {
+        "id": "station002",
+        "name": "Tesco Extra Brent Park",
+        "brand": "Tesco",
+        "lat": 51.5677,
+        "lon": -0.2634,
+        "address": "Tilling Road, London NW2 1LJ",
+        "amenities": ["air", "shop", "pay_at_pump"],
+        "prices": {
+            "unleaded": 1.43,
+            "super_unleaded": 1.56,
+            "diesel": 1.50,
+            "premium_diesel": 1.61
+        },
+        "updated": "2026-02-12T08:00:00Z"
+    },
+    {
+        "id": "station003",
+        "name": "Shell Hendon",
+        "brand": "Shell",
+        "lat": 51.5831,
+        "lon": -0.2267,
+        "address": "Great North Way, London NW4 1PL",
+        "amenities": ["shop", "toilets", "ev_charging"],
+        "prices": {
+            "unleaded": 1.48,
+            "super_unleaded": 1.62,
+            "diesel": 1.55,
+            "premium_diesel": 1.65
+        },
+        "updated": "2026-02-12T07:30:00Z"
+    },
+    {
+        "id": "station004",
+        "name": "Asda Watford",
+        "brand": "Asda",
+        "lat": 51.6555,
+        "lon": -0.3941,
+        "address": "Odhams Industrial Park, Watford WD24 7RT",
+        "amenities": ["air", "shop", "pay_at_pump", "car_wash"],
+        "prices": {
+            "unleaded": 1.41,
+            "super_unleaded": 1.54,
+            "diesel": 1.48,
+            "premium_diesel": 1.58
+        },
+        "updated": "2026-02-12T09:00:00Z"
+    },
+    {
+        "id": "station005",
+        "name": "BP Staples Corner",
+        "brand": "BP",
+        "lat": 51.5648,
+        "lon": -0.2202,
+        "address": "Edgware Road, London NW2 6LW",
+        "amenities": ["shop", "toilets", "ev_charging", "car_wash"],
+        "prices": {
+            "unleaded": 1.50,
+            "super_unleaded": 1.63,
+            "diesel": 1.57,
+            "premium_diesel": 1.67
+        },
+        "updated": "2026-02-12T07:00:00Z"
+    },
+    {
+        "id": "station006",
+        "name": "Sainsbury's Mill Hill",
+        "brand": "Sainsburys",
+        "lat": 51.6180,
+        "lon": -0.2490,
+        "address": "Bunns Lane, London NW7 2DQ",
+        "amenities": ["air", "shop"],
+        "prices": {
+            "unleaded": 1.44,
+            "super_unleaded": 1.57,
+            "diesel": 1.51,
+            "premium_diesel": 1.61
+        },
+        "updated": "2026-02-12T08:30:00Z"
+    },
+    {
+        "id": "station007",
+        "name": "Esso Barnet",
+        "brand": "Esso",
+        "lat": 51.6475,
+        "lon": -0.1995,
+        "address": "High Road, Barnet EN5 5SJ",
+        "amenities": ["shop", "toilets", "air"],
+        "prices": {
+            "unleaded": 1.47,
+            "super_unleaded": 1.60,
+            "diesel": 1.54,
+            "premium_diesel": 1.64
+        },
+        "updated": "2026-02-12T06:00:00Z"
+    },
+    {
+        "id": "station008",
+        "name": "Jet South Mimms",
+        "brand": "Jet",
+        "lat": 51.6930,
+        "lon": -0.2214,
+        "address": "St Albans Road, South Mimms EN6 3QQ",
+        "amenities": ["shop", "air"],
+        "prices": {
+            "unleaded": 1.45,
+            "super_unleaded": 1.58,
+            "diesel": 1.52,
+            "premium_diesel": 1.62
+        },
+        "updated": "2026-02-12T08:15:00Z"
+    },
+    {
+        "id": "station009",
+        "name": "Texaco Finchley",
+        "brand": "Texaco",
+        "lat": 51.5998,
+        "lon": -0.1882,
+        "address": "Ballards Lane, London N3 2PA",
+        "amenities": ["shop"],
+        "prices": {
+            "unleaded": 1.49,
+            "super_unleaded": 1.62,
+            "diesel": 1.56,
+            "premium_diesel": 1.66
+        },
+        "updated": "2026-02-12T07:45:00Z"
+    },
+    {
+        "id": "station010",
+        "name": "Gulf Edgware",
+        "brand": "Gulf",
+        "lat": 51.6155,
+        "lon": -0.2754,
+        "address": "Station Road, Edgware HA8 7BJ",
+        "amenities": ["shop", "air", "toilets"],
+        "prices": {
+            "unleaded": 1.46,
+            "super_unleaded": 1.59,
+            "diesel": 1.53,
+            "premium_diesel": 1.63
+        },
+        "updated": "2026-02-12T08:00:00Z"
+    }
+]

@@ -1,0 +1,17 @@
+devices([
+  "iPhone 16 Pro",
+  "iPhone 16 Pro Max",
+  "iPad Pro 13-inch (M4)"
+])
+
+languages(["en-GB"])
+
+scheme("FuelFinder")
+project("FuelFinder.xcodeproj")
+
+output_directory("./fastlane/screenshots")
+clear_previous_screenshots(true)
+override_status_bar(true)
+
+# Only run screenshot tests
+launch_arguments(["--uitesting"])

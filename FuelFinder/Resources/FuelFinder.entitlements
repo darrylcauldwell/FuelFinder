@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- CarPlay Fueling Entitlement -->
+    <!-- To enable: Apply at https://developer.apple.com/contact/carplay/ -->
+    <!-- Once approved, uncomment the line below: -->
+    <!-- <key>com.apple.developer.carplay-fueling</key> -->
+    <!-- <true/> -->
+</dict>
+</plist>
