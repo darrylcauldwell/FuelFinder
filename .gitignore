@@ -30,6 +30,16 @@ fastlane/AuthKey_*.p8
 # Bundle
 vendor/
 
+# AI / Claude Code
+.claude/
+.claude*
+CLAUDE.md
+.cursorrules
+.cursor/
+.aider*
+.copilot/
+.github/copilot/
+
 # macOS
 .DS_Store
 *.swp
