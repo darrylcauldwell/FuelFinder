@@ -28,6 +28,14 @@
         <true/>
         <key>UISceneConfigurations</key>
         <dict>
+            <!-- Main iPhone Window Scene (required alongside CarPlay scene) -->
+            <key>UIWindowSceneSessionRoleApplication</key>
+            <array>
+                <dict>
+                    <key>UISceneConfigurationName</key>
+                    <string>Default Configuration</string>
+                </dict>
+            </array>
             <!-- CarPlay Scene (Fueling) -->
             <key>CPTemplateApplicationSceneSessionRoleApplication</key>
             <array>

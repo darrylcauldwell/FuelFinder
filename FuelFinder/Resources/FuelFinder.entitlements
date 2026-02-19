@@ -3,9 +3,10 @@
 <plist version="1.0">
 <dict>
     <!-- CarPlay Fueling Entitlement -->
-    <!-- To enable: Apply at https://developer.apple.com/contact/carplay/ -->
-    <!-- Once approved, uncomment the line below: -->
-    <!-- <key>com.apple.developer.carplay-fueling</key> -->
-    <!-- <true/> -->
+    <!-- Approved entitlement required for App Store / TestFlight distribution. -->
+    <!-- Apply at https://developer.apple.com/contact/carplay/ -->
+    <!-- Active here for simulator testing — no approval needed for local dev builds. -->
+    <key>com.apple.developer.carplay-fueling</key>
+    <true/>
 </dict>
 </plist>

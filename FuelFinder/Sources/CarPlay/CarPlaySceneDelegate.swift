@@ -7,70 +7,73 @@ import Combine
 ///
 /// Requires `com.apple.developer.carplay-fueling` entitlement.
 /// Configure in Info.plist: CPTemplateApplicationSceneSessionRoleApplication.
+@MainActor
 final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
 
     // MARK: - Properties
 
     private var interfaceController: CPInterfaceController?
-    private var carPlayWindow: CPWindow?
     private var carPlayManager: FuelCarPlayManager?
     private var cancellables = Set<AnyCancellable>()
     private var refreshTask: Task<Void, Never>?
 
     // MARK: - Shared State
 
-    /// Uses the shared FuelDataManager from the app.
-    /// In a production app this would be injected via a shared container.
-    private func makeSharedDataManager() -> FuelDataManager {
+    private var sharedDataManager: FuelDataManager {
         FuelDataManager.shared ?? FuelDataManager(coreDataStack: .shared)
     }
 
     // MARK: - Scene Lifecycle
 
-    func templateApplicationScene(
+    nonisolated func templateApplicationScene(
         _ templateApplicationScene: CPTemplateApplicationScene,
-        didConnect interfaceController: CPInterfaceController,
-        to window: CPWindow
+        didConnect interfaceController: CPInterfaceController
     ) {
-        self.interfaceController = interfaceController
-        self.carPlayWindow = window
+        Task { @MainActor in
+            self.connect(interfaceController: interfaceController)
+        }
+    }
 
-        let dataManager = makeSharedDataManager()
+    private func connect(interfaceController: CPInterfaceController) {
+        self.interfaceController = interfaceController
+
+        let dataManager = sharedDataManager
         let manager = FuelCarPlayManager(dataManager: dataManager)
         manager.setInterfaceController(interfaceController)
         self.carPlayManager = manager
 
-        // Set root template
+        // Set root template — use animated: false on initial connect
         let rootTemplate = manager.buildRootTemplate()
-        interfaceController.setRootTemplate(rootTemplate, animated: true, completion: nil)
+        interfaceController.setRootTemplate(rootTemplate, animated: false, completion: nil)
 
-        // Start fetching nearby data
-        refreshTask = Task { @MainActor in
-            let location = LocationService.defaultUK
-            await dataManager.refreshStations(near: location)
-            await dataManager.findNearbyStations(coordinate: location)
+        // Fetch nearby stations for CarPlay
+        refreshTask = Task {
+            await dataManager.findNearbyStations(coordinate: LocationService.defaultUK)
         }
 
-        // Observe data changes to update templates
+        // Observe data changes to refresh the Nearby tab
         dataManager.$nearbyStations
             .receive(on: DispatchQueue.main)
-            .sink { [weak manager] stations in
-                guard let manager else { return }
-                manager.refreshNearbyTab()
+            .sink { [weak manager] _ in
+                manager?.refreshNearbyTab()
             }
             .store(in: &cancellables)
     }
 
-    func templateApplicationScene(
+    nonisolated func templateApplicationScene(
         _ templateApplicationScene: CPTemplateApplicationScene,
-        didDisconnect interfaceController: CPInterfaceController,
-        from window: CPWindow
+        didDisconnect interfaceController: CPInterfaceController
     ) {
+        Task { @MainActor in
+            self.disconnect()
+        }
+    }
+
+    private func disconnect() {
         refreshTask?.cancel()
         refreshTask = nil
         cancellables.removeAll()
-        self.interfaceController = nil
-        self.carPlayWindow = nil
-        self.carPlayManager = nil
+        interfaceController = nil
+        carPlayManager = nil
     }
 }

@@ -10,33 +10,34 @@ struct NearbyView: View {
     @EnvironmentObject private var locationService: LocationService
     @Environment(\.managedObjectContext) private var viewContext
 
+    // Initial span covers the full 16 km search radius (32 km diameter ≈ 0.29°).
+    // Matching the viewport to the search radius ensures every station in the list
+    // also has a visible pin on the map.
     @State private var cameraPosition: MapCameraPosition = .region(
         MKCoordinateRegion(
             center: LocationService.defaultUK,
-            span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
+            span: MKCoordinateSpan(latitudeDelta: 0.3, longitudeDelta: 0.3)
         )
     )
+    @Binding var selectedFuelType: FuelType
     @State private var selectedStationDetail: StationWithScore?
-    @State private var showStationDetail = false
-    @State private var showSettings = false
+    @State private var showToolbar = true
 
-    // Filters & sorting
-    @State private var selectedFuelType: FuelType = .unleaded
-    @State private var sortOrder: StationSortOrder = .price
-    @State private var maxPricePence: Double = 200
+    // Price filter for map pins (histogram in top toolbar)
+    @State private var minPricePence: Double = 0
+    @State private var maxPricePence: Double = 999
 
     // Map region tracking for re-query
     @State private var lastQueryCenter: CLLocationCoordinate2D?
     @State private var isInitialLoadComplete = false
     @State private var showErrorAlert = false
 
-    /// Stations filtered by the user's max price setting.
+    /// Stations filtered by the user's selected price range.
     private var filteredStations: [StationWithScore] {
+        let stations = dataManager.nearbyStations
+        let minPounds = minPricePence / 100.0
         let maxPounds = maxPricePence / 100.0
-        if maxPricePence >= 200 {
-            return dataManager.nearbyStations
-        }
-        return dataManager.nearbyStations.filter { $0.price <= maxPounds }
+        return stations.filter { $0.price >= minPounds && $0.price <= maxPounds }
     }
 
     var body: some View {
@@ -44,27 +45,54 @@ struct NearbyView: View {
             mapContent
 
             VStack(spacing: 0) {
-                topToolbar
+                if showToolbar {
+                    topToolbar
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        // Swipe upward on the toolbar to slide it off the top
+                        .gesture(
+                            DragGesture()
+                                .onEnded { value in
+                                    if value.translation.height < -30 {
+                                        withAnimation(.spring(response: 0.35)) { showToolbar = false }
+                                    }
+                                }
+                        )
+                }
                 Spacer()
                 if dataManager.isDataStale {
                     staleBanner
                 }
             }
 
+            // Top drag handle — visible cue that the toolbar can be pulled back down
+            if !showToolbar {
+                VStack {
+                    Capsule()
+                        .fill(.secondary.opacity(0.5))
+                        .frame(width: 40, height: 5)
+                        .padding(.top, 8)
+                        .frame(maxWidth: .infinity)
+                        .padding(.bottom, 8)
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture()
+                                .onEnded { value in
+                                    if value.translation.height > 30 {
+                                        withAnimation(.spring(response: 0.35)) { showToolbar = true }
+                                    }
+                                }
+                        )
+                    Spacer()
+                }
+                .transition(.opacity)
+            }
+
             if dataManager.isLoading {
                 loadingOverlay
             }
         }
-        .sheet(isPresented: .constant(true)) {
-            stationListPanel
-        }
-        .sheet(isPresented: $showStationDetail) {
-            if let station = selectedStationDetail {
-                StationDetailSheet(station: station, viewContext: viewContext)
-            }
-        }
-        .sheet(isPresented: $showSettings) {
-            settingsSheet
+        .sheet(item: $selectedStationDetail) { station in
+            StationDetailSheet(station: station, viewContext: viewContext)
         }
         .alert("Error", isPresented: $showErrorAlert) {
             Button("OK") { dataManager.lastError = nil }
@@ -81,9 +109,6 @@ struct NearbyView: View {
             await loadNearbyStations()
         }
         .onChange(of: selectedFuelType) {
-            Task { await loadNearbyStations() }
-        }
-        .onChange(of: sortOrder) {
             Task { await loadNearbyStations() }
         }
         .onChange(of: locationService.currentLocation) { old, newLocation in
@@ -109,7 +134,6 @@ struct NearbyView: View {
                     StationPinView(station: station)
                         .onTapGesture {
                             selectedStationDetail = station
-                            showStationDetail = true
                         }
                 }
             }
@@ -128,31 +152,60 @@ struct NearbyView: View {
     // MARK: - Top Toolbar
 
     private var topToolbar: some View {
-        HStack(spacing: Spacing.sm) {
-            Picker("Fuel", selection: $selectedFuelType) {
+        VStack(spacing: Spacing.sm) {
+            // Fuel type selector
+            Menu {
                 ForEach(FuelType.allCases) { type in
-                    Text(type.shortName).tag(type)
+                    Button {
+                        selectedFuelType = type
+                    } label: {
+                        if type == selectedFuelType {
+                            Label(type.displayName, systemImage: "checkmark")
+                        } else {
+                            Text(type.displayName)
+                        }
+                    }
                 }
-            }
-            .pickerStyle(.segmented)
-
-            Picker("Sort", selection: $sortOrder) {
-                ForEach(StationSortOrder.allCases) { order in
-                    Text(order.displayName).tag(order)
-                }
-            }
-            .pickerStyle(.segmented)
-            .frame(width: 160)
-
-            Button {
-                showSettings = true
             } label: {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.title3)
+                HStack(spacing: 6) {
+                    Image(systemName: "fuelpump.fill")
+                    Text(selectedFuelType.displayName)
+                        .font(.subheadline.weight(.semibold))
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .foregroundStyle(selectedFuelType.color)
+                .fixedSize()
             }
-            .buttonStyle(GlassButtonStyle(tint: AppColors.secondary))
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Price range histogram — compact inline filter, no separate sheet needed
+            PriceHistogramRangeView(
+                stations: dataManager.nearbyStations,
+                minPrice: $minPricePence,
+                maxPrice: $maxPricePence,
+                barHeight: 36
+            )
         }
-        .glassCard(material: .thin, cornerRadius: CornerRadius.md, shadowRadius: 6, padding: Spacing.md)
+        .padding(Spacing.md)
+        .background(
+            .ultraThinMaterial,
+            in: RoundedRectangle(cornerRadius: CornerRadius.md, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadius.md, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [.white.opacity(0.45), .white.opacity(0.15), .clear],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.5
+                )
+        )
+        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
         .padding(.horizontal)
         .padding(.top, Spacing.sm)
     }
@@ -196,105 +249,6 @@ struct NearbyView: View {
         }
     }
 
-    // MARK: - Station List Panel (Persistent Bottom Sheet)
-
-    private var stationListPanel: some View {
-        NavigationStack {
-            List {
-                if filteredStations.isEmpty && !dataManager.isLoading {
-                    ContentUnavailableView(
-                        "No Stations Found",
-                        systemImage: "fuelpump.slash",
-                        description: Text("Try zooming out or changing fuel type.")
-                    )
-                } else {
-                    ForEach(filteredStations) { station in
-                        NearbyStationRowView(station: station)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                selectedStationDetail = station
-                                showStationDetail = true
-                            }
-                            .swipeActions(edge: .trailing) {
-                                Button {
-                                    openInAppleMaps(station: station)
-                                } label: {
-                                    Label("Directions", systemImage: "arrow.triangle.turn.up.right.diamond")
-                                }
-                                .tint(AppColors.primary)
-                            }
-                    }
-                }
-            }
-            .glassList()
-            .navigationTitle("\(filteredStations.count) Stations Nearby")
-            .navigationBarTitleDisplayMode(.inline)
-            .glassNavigation()
-        }
-        .presentationDetents([.fraction(0.3), .medium, .large])
-        .presentationDragIndicator(.visible)
-        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
-        .interactiveDismissDisabled()
-    }
-
-    // MARK: - Settings Sheet
-
-    private var settingsSheet: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    Picker("Fuel", selection: $selectedFuelType) {
-                        ForEach(FuelType.allCases) { type in
-                            Text(type.displayName).tag(type)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                } header: {
-                    GlassSectionHeader("Fuel Type", icon: "fuelpump")
-                }
-
-                Section {
-                    VStack(alignment: .leading, spacing: Spacing.sm) {
-                        Text(maxPricePence >= 200 ? "No limit" : String(format: "%.1fp", maxPricePence))
-                            .font(.headline)
-                            .foregroundStyle(AppColors.primary)
-                        Slider(value: $maxPricePence, in: 100...200, step: 1)
-                            .tint(AppColors.primary)
-                            .accessibilityLabel("Maximum price filter")
-                            .accessibilityValue(maxPricePence >= 200 ? "No limit" : String(format: "%.0f pence", maxPricePence))
-                        Text("Slide left to hide expensive stations")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } header: {
-                    GlassSectionHeader("Maximum Price", icon: "sterlingsign.circle")
-                }
-
-                Section {
-                    if let lastRefresh = dataManager.lastRefresh {
-                        LabeledContent("Last Updated", value: lastRefresh.formatted(date: .abbreviated, time: .shortened))
-                    }
-                    Button("Refresh Prices") {
-                        Task {
-                            await dataManager.refreshStations()
-                        }
-                    }
-                } header: {
-                    GlassSectionHeader("Data", icon: "arrow.clockwise")
-                }
-            }
-            .glassList()
-            .navigationTitle("Filters")
-            .navigationBarTitleDisplayMode(.inline)
-            .glassNavigation()
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { showSettings = false }
-                }
-            }
-        }
-    }
-
     // MARK: - Actions
 
     @MainActor
@@ -307,14 +261,15 @@ struct NearbyView: View {
             fuelType: selectedFuelType.rawValue,
             radiusKm: 16,
             limit: 50,
-            sortBy: sortOrder
+            sortBy: .price
         )
 
         if !isInitialLoadComplete {
-            cameraPosition = .region(MKCoordinateRegion(
+            let initialRegion = MKCoordinateRegion(
                 center: coord,
-                span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
-            ))
+                span: MKCoordinateSpan(latitudeDelta: 0.3, longitudeDelta: 0.3)
+            )
+            cameraPosition = .region(initialRegion)
             isInitialLoadComplete = true
         }
     }
@@ -339,17 +294,9 @@ struct NearbyView: View {
                 fuelType: selectedFuelType.rawValue,
                 radiusKm: radiusKm,
                 limit: 50,
-                sortBy: sortOrder
+                sortBy: .price
             )
         }
-    }
-
-    private func openInAppleMaps(station: StationWithScore) {
-        let mapItem = MKMapItem(placemark: MKPlacemark(coordinate: station.coordinate))
-        mapItem.name = station.name
-        mapItem.openInMaps(launchOptions: [
-            MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
-        ])
     }
 }
 
@@ -541,10 +488,197 @@ struct StationDetailSheet: View {
     }
 }
 
+// MARK: - Price Histogram Range View
+
+/// Airbnb-style price distribution histogram with a two-handle range slider.
+struct PriceHistogramRangeView: View {
+
+    let stations: [StationWithScore]
+    @Binding var minPrice: Double   // pence
+    @Binding var maxPrice: Double   // pence
+    var barHeight: CGFloat = 72
+
+    private let binCount = 28
+    private let thumbSize: CGFloat = 28
+
+    /// Actual min/max from current station data (in pence).
+    private var dataBounds: (min: Double, max: Double) {
+        guard !stations.isEmpty else { return (120, 180) }
+        let prices = stations.map { $0.price * 100 }
+        return ((prices.min() ?? 120).rounded(.down),
+                (prices.max() ?? 180).rounded(.up))
+    }
+
+    private struct Bin {
+        let count: Int
+        let inRange: Bool
+    }
+
+    private var bins: [Bin] {
+        let b = dataBounds
+        guard b.max > b.min else {
+            return Array(repeating: Bin(count: 0, inRange: true), count: binCount)
+        }
+        let width = (b.max - b.min) / Double(binCount)
+        var counts = Array(repeating: 0, count: binCount)
+        for station in stations {
+            let p = station.price * 100
+            let idx = max(0, min(Int((p - b.min) / width), binCount - 1))
+            counts[idx] += 1
+        }
+        return counts.enumerated().map { i, count in
+            let binMin = b.min + Double(i) * width
+            let binMax = binMin + width
+            return Bin(count: count, inRange: binMax >= minPrice && binMin <= maxPrice)
+        }
+    }
+
+    var body: some View {
+        let b = dataBounds
+
+        VStack(spacing: Spacing.sm) {
+            // Histogram — padded by half-thumb so bars align with the slider track
+            let maxCount = CGFloat(bins.map(\.count).max() ?? 1)
+            HStack(alignment: .bottom, spacing: 2) {
+                ForEach(Array(bins.enumerated()), id: \.offset) { _, bin in
+                    let h = maxCount > 0 ? CGFloat(bin.count) / maxCount * barHeight : 0
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(bin.inRange ? AppColors.primary : AppColors.primary.opacity(0.2))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: max(bin.count > 0 ? 3 : 0, h))
+                }
+            }
+            .frame(height: barHeight)
+            .padding(.horizontal, thumbSize / 2)
+            .animation(.easeInOut(duration: 0.12), value: minPrice)
+            .animation(.easeInOut(duration: 0.12), value: maxPrice)
+
+            // Two-handle range slider
+            PriceRangeSliderView(
+                lowerValue: $minPrice,
+                upperValue: $maxPrice,
+                bounds: b.min...b.max,
+                thumbSize: thumbSize
+            )
+
+            // Min / Max labels
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Min").font(.caption).foregroundStyle(.secondary)
+                    Text(String(format: "£%.2f", minPrice / 100))
+                        .font(.subheadline.weight(.semibold))
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("Max").font(.caption).foregroundStyle(.secondary)
+                    let atCeiling = maxPrice >= b.max - 0.5
+                    Text(atCeiling ? "Any" : String(format: "£%.2f", maxPrice / 100))
+                        .font(.subheadline.weight(.semibold))
+                }
+            }
+        }
+        .onAppear {
+            // Initialise handles to the full data range so all stations show.
+            let b2 = dataBounds
+            if minPrice < b2.min || minPrice > b2.max { minPrice = b2.min }
+            if maxPrice > b2.max || maxPrice < b2.min { maxPrice = b2.max }
+        }
+        .accessibilityElement(children: .contain)
+    }
+}
+
+// MARK: - Price Range Slider View
+
+/// A custom two-handle range slider using drag gestures.
+struct PriceRangeSliderView: View {
+
+    @Binding var lowerValue: Double
+    @Binding var upperValue: Double
+    let bounds: ClosedRange<Double>
+    let thumbSize: CGFloat
+
+    var body: some View {
+        GeometryReader { geo in
+            let trackWidth = geo.size.width
+            let span = bounds.upperBound - bounds.lowerBound
+            guard span > 0 else { return AnyView(EmptyView()) }
+
+            let lowerX = (lowerValue - bounds.lowerBound) / span * trackWidth
+            let upperX = (upperValue - bounds.lowerBound) / span * trackWidth
+
+            return AnyView(
+                ZStack(alignment: .leading) {
+                    // Background track
+                    Capsule()
+                        .fill(Color(.systemFill))
+                        .frame(height: 4)
+
+                    // Active range track
+                    Rectangle()
+                        .fill(AppColors.primary)
+                        .frame(width: max(0, upperX - lowerX), height: 4)
+                        .offset(x: lowerX)
+
+                    // Lower thumb
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: thumbSize, height: thumbSize)
+                        .shadow(color: .black.opacity(0.18), radius: 4, x: 0, y: 2)
+                        .offset(x: lowerX - thumbSize / 2)
+                        .gesture(
+                            DragGesture(minimumDistance: 0)
+                                .onChanged { value in
+                                    let frac = max(0, min(value.location.x / trackWidth, 1))
+                                    let proposed = bounds.lowerBound + frac * span
+                                    lowerValue = min(proposed, upperValue - span * 0.01)
+                                }
+                        )
+                        .accessibilityLabel("Minimum price")
+                        .accessibilityValue(String(format: "£%.2f", lowerValue / 100))
+                        .accessibilityAdjustableAction { direction in
+                            let step = span * 0.02
+                            switch direction {
+                            case .increment: lowerValue = min(lowerValue + step, upperValue - step)
+                            case .decrement: lowerValue = max(lowerValue - step, bounds.lowerBound)
+                            @unknown default: break
+                            }
+                        }
+
+                    // Upper thumb
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: thumbSize, height: thumbSize)
+                        .shadow(color: .black.opacity(0.18), radius: 4, x: 0, y: 2)
+                        .offset(x: upperX - thumbSize / 2)
+                        .gesture(
+                            DragGesture(minimumDistance: 0)
+                                .onChanged { value in
+                                    let frac = max(0, min(value.location.x / trackWidth, 1))
+                                    let proposed = bounds.lowerBound + frac * span
+                                    upperValue = max(proposed, lowerValue + span * 0.01)
+                                }
+                        )
+                        .accessibilityLabel("Maximum price")
+                        .accessibilityValue(String(format: "£%.2f", upperValue / 100))
+                        .accessibilityAdjustableAction { direction in
+                            let step = span * 0.02
+                            switch direction {
+                            case .increment: upperValue = min(upperValue + step, bounds.upperBound)
+                            case .decrement: upperValue = max(upperValue - step, lowerValue + step)
+                            @unknown default: break
+                            }
+                        }
+                }
+            )
+        }
+        .frame(height: thumbSize)
+    }
+}
+
 // MARK: - Preview
 
 #Preview {
-    NearbyView()
+    NearbyView(selectedFuelType: .constant(.unleaded))
         .environmentObject(FuelDataManager(coreDataStack: .preview))
         .environmentObject(LocationService())
         .environment(\.managedObjectContext, CoreDataStack.preview.viewContext)

@@ -7,7 +7,7 @@ import Combine
 /// Bridges app state to CarPlay templates.
 /// Manages station data display and keeps templates in sync with FuelDataManager.
 @MainActor
-final class FuelCarPlayManager: ObservableObject {
+final class FuelCarPlayManager: NSObject, ObservableObject {
 
     // MARK: - Dependencies
 
@@ -17,7 +17,7 @@ final class FuelCarPlayManager: ObservableObject {
     // MARK: - CarPlay State
 
     private(set) var interfaceController: CPInterfaceController?
-    private var nearbyTemplate: CPListTemplate?
+    private var nearbyPOITemplate: CPPointOfInterestTemplate?
     private var rootTabBar: CPTabBarTemplate?
 
     var fuelType: String = "unleaded"
@@ -30,25 +30,54 @@ final class FuelCarPlayManager: ObservableObject {
 
     /// Builds the root CPTabBarTemplate.
     func buildRootTemplate() -> CPTabBarTemplate {
-        let nearbyTab = buildNearbyListTemplate()
+        let nearbyTab = buildNearbyPointsOfInterestTemplate()
         let favouritesTab = buildFavouritesListTemplate()
         let tabBar = CPTabBarTemplate(templates: [nearbyTab, favouritesTab])
         self.rootTabBar = tabBar
         return tabBar
     }
 
-    /// "Nearby" tab — CPListTemplate of nearest stations.
-    func buildNearbyListTemplate() -> CPListTemplate {
-        let items = dataManager.nearbyStations.prefix(12).map { station in
-            buildStationListItem(station: station)
-        }
-
-        let section = CPListSection(items: items, header: "Nearest Fuel Stations", sectionIndexTitle: nil)
-        let template = CPListTemplate(title: "Nearby", sections: [section])
+    /// "Nearby" tab — CPPointOfInterestTemplate: map with fuel-station pins.
+    func buildNearbyPointsOfInterestTemplate() -> CPPointOfInterestTemplate {
+        let pois = makePOIs(from: dataManager.nearbyStations)
+        let template = CPPointOfInterestTemplate(
+            title: "Nearby Fuel",
+            pointsOfInterest: pois,
+            selectedIndex: NSNotFound
+        )
         template.tabTitle = "Nearby"
         template.tabImage = UIImage(systemName: "location.fill")
-        self.nearbyTemplate = template
+        template.pointOfInterestDelegate = self
+        self.nearbyPOITemplate = template
         return template
+    }
+
+    /// Converts `StationWithScore` array into `CPPointOfInterest` pins.
+    private func makePOIs(from stations: [StationWithScore]) -> [CPPointOfInterest] {
+        stations.prefix(12).map { station in
+            let mapItem = MKMapItem(placemark: MKPlacemark(coordinate: station.coordinate))
+            mapItem.name = station.name
+
+            let tierColor: UIColor
+            switch station.priceTier {
+            case 0: tierColor = .systemGreen
+            case 1: tierColor = .systemOrange
+            default: tierColor = .systemRed
+            }
+            let pinImage = UIImage(systemName: "fuelpump.fill")?
+                .withTintColor(tierColor, renderingMode: .alwaysOriginal)
+
+            return CPPointOfInterest(
+                location: mapItem,
+                title: station.name,
+                subtitle: station.formattedPrice,
+                summary: station.formattedDistance,
+                detailTitle: station.name,
+                detailSubtitle: "\(station.formattedPrice) · \(station.brand)",
+                detailSummary: station.address,
+                pinImage: pinImage
+            )
+        }
     }
 
     /// "Favourites" tab — placeholder.
@@ -121,12 +150,9 @@ final class FuelCarPlayManager: ObservableObject {
     // MARK: - Refresh Nearby Tab
 
     func refreshNearbyTab() {
-        guard let nearbyTemplate else { return }
-        let items = dataManager.nearbyStations.prefix(12).map { station in
-            buildStationListItem(station: station)
-        }
-        let section = CPListSection(items: items, header: "Nearest Fuel Stations", sectionIndexTitle: nil)
-        nearbyTemplate.updateSections([section])
+        guard let nearbyPOITemplate else { return }
+        let pois = makePOIs(from: dataManager.nearbyStations)
+        nearbyPOITemplate.setPointsOfInterest(pois, selectedIndex: NSNotFound)
     }
 
     // MARK: - Navigation
@@ -170,5 +196,32 @@ final class FuelCarPlayManager: ObservableObject {
 
     func setInterfaceController(_ controller: CPInterfaceController) {
         self.interfaceController = controller
+    }
+}
+
+// MARK: - CPPointOfInterestTemplateDelegate
+
+extension FuelCarPlayManager: CPPointOfInterestTemplateDelegate {
+
+    nonisolated func pointOfInterestTemplate(
+        _ pointOfInterestTemplate: CPPointOfInterestTemplate,
+        didChangeMapRegion region: MKCoordinateRegion
+    ) {
+        // No action — stations are pre-loaded for the user's location
+    }
+
+    nonisolated func pointOfInterestTemplate(
+        _ pointOfInterestTemplate: CPPointOfInterestTemplate,
+        didSelectPointOfInterest pointOfInterest: CPPointOfInterest
+    ) {
+        let coord = pointOfInterest.location.placemark.coordinate
+        Task { @MainActor [self] in
+            if let station = dataManager.nearbyStations.first(where: {
+                abs($0.coordinate.latitude - coord.latitude) < 0.0001 &&
+                abs($0.coordinate.longitude - coord.longitude) < 0.0001
+            }) {
+                showStationDetail(station: station)
+            }
+        }
     }
 }
