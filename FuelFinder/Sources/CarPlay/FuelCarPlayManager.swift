@@ -17,14 +17,10 @@ final class FuelCarPlayManager: ObservableObject {
     // MARK: - CarPlay State
 
     private(set) var interfaceController: CPInterfaceController?
-    private(set) var mapTemplate: CPMapTemplate?
     private var nearbyTemplate: CPListTemplate?
     private var rootTabBar: CPTabBarTemplate?
 
-    /// Current route displayed on CarPlay.
-    var currentRoute: MKRoute?
     var fuelType: String = "unleaded"
-    var maxDetourKm: Double = 2.0
 
     init(dataManager: FuelDataManager) {
         self.dataManager = dataManager
@@ -34,39 +30,11 @@ final class FuelCarPlayManager: ObservableObject {
 
     /// Builds the root CPTabBarTemplate.
     func buildRootTemplate() -> CPTabBarTemplate {
-        let routesTab = buildRoutesMapTemplate()
         let nearbyTab = buildNearbyListTemplate()
         let favouritesTab = buildFavouritesListTemplate()
-        let tabBar = CPTabBarTemplate(templates: [routesTab, nearbyTab, favouritesTab])
+        let tabBar = CPTabBarTemplate(templates: [nearbyTab, favouritesTab])
         self.rootTabBar = tabBar
         return tabBar
-    }
-
-    /// "Routes" tab — CPMapTemplate with fuel station overlay.
-    func buildRoutesMapTemplate() -> CPMapTemplate {
-        let template = CPMapTemplate()
-        template.tabTitle = "Routes"
-        template.tabImage = UIImage(systemName: "map")
-        template.guidanceBackgroundColor = .systemBackground
-
-        // Map buttons
-        let fuelButton = CPMapButton { [weak self] _ in
-            self?.showStationListOnCarPlay()
-        }
-        fuelButton.image = UIImage(systemName: "fuelpump.fill")
-
-        let centreButton = CPMapButton { _ in
-            // Re-centre on user location
-        }
-        centreButton.image = UIImage(systemName: "location.fill")
-
-        let zoomInButton = CPMapButton { _ in }
-        zoomInButton.image = UIImage(systemName: "plus.magnifyingglass")
-
-        template.mapButtons = [fuelButton, centreButton, zoomInButton]
-
-        self.mapTemplate = template
-        return template
     }
 
     /// "Nearby" tab — CPListTemplate of nearest stations.
@@ -97,7 +65,7 @@ final class FuelCarPlayManager: ObservableObject {
     private func buildStationListItem(station: StationWithScore) -> CPListItem {
         let item = CPListItem(
             text: "\(station.name) — \(station.formattedPrice)",
-            detailText: station.formattedDetour
+            detailText: station.formattedDistance
         )
 
         // Price tier badge
@@ -132,44 +100,20 @@ final class FuelCarPlayManager: ObservableObject {
         let items: [CPInformationItem] = [
             CPInformationItem(title: "Price", detail: station.formattedPrice),
             CPInformationItem(title: "Brand", detail: station.brand),
-            CPInformationItem(title: "Detour", detail: station.formattedDetour),
+            CPInformationItem(title: "Distance", detail: station.formattedDistance),
             CPInformationItem(title: "Address", detail: station.address)
         ]
 
-        let addStopAction = CPTextButton(title: "Add Stop", textStyle: .confirm) { [weak self] _ in
+        let navigateAction = CPTextButton(title: "Get Directions", textStyle: .confirm) { [weak self] _ in
             self?.navigateToStation(station: station)
-        }
-
-        let navigateAction = CPTextButton(title: "Navigate", textStyle: .normal) { _ in
-            let mapItem = MKMapItem(placemark: MKPlacemark(coordinate: station.coordinate))
-            mapItem.name = station.name
-            mapItem.openInMaps(launchOptions: [
-                MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
-            ])
         }
 
         let template = CPInformationTemplate(
             title: station.name,
             layout: .leading,
             items: items,
-            actions: [addStopAction, navigateAction]
+            actions: [navigateAction]
         )
-
-        interfaceController?.pushTemplate(template, animated: true, completion: nil)
-    }
-
-    // MARK: - Station List
-
-    func showStationListOnCarPlay() {
-        let stations = dataManager.stationsAlongRoute
-        let items = stations.prefix(12).map { buildStationListItem(station: $0) }
-
-        let section = CPListSection(items: items, header: "Fuel Stops Along Route", sectionIndexTitle: nil)
-        let template = CPListTemplate(title: "Fuel Stops", sections: [section])
-
-        if stations.count > 12 {
-            template.emptyViewSubtitleVariants = ["Showing 12 of \(stations.count) stations"]
-        }
 
         interfaceController?.pushTemplate(template, animated: true, completion: nil)
     }
@@ -202,13 +146,13 @@ final class FuelCarPlayManager: ObservableObject {
         let lowered = command.lowercased()
 
         if lowered.contains("cheapest") {
-            if let cheapest = dataManager.stationsAlongRoute.min(by: { $0.price < $1.price }) {
+            if let cheapest = dataManager.nearbyStations.min(by: { $0.price < $1.price }) {
                 showStationDetail(station: cheapest)
             }
         } else if lowered.contains("nearest") || lowered.contains("nearby") {
-            showStationListOnCarPlay()
+            refreshNearbyTab()
         } else if let brand = extractBrand(from: lowered) {
-            let filtered = dataManager.stationsAlongRoute.filter {
+            let filtered = dataManager.nearbyStations.filter {
                 $0.brand.lowercased().contains(brand)
             }
             if let cheapestOfBrand = filtered.min(by: { $0.price < $1.price }) {

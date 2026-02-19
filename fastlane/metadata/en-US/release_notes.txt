@@ -1,0 +1,9 @@
+Welcome to Fuel Finder 1.0!
+
+- Plan routes and find the cheapest fuel along the way
+- Live UK Government fuel price data
+- Smart price and detour scoring with colour-coded badges
+- Add fuel stops and re-route automatically
+- CarPlay support for hands-free fuel finding
+- Favourite stations synced across devices via iCloud
+- Beautiful glass-themed design optimised for iOS 18

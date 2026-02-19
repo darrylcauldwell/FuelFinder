@@ -4,54 +4,49 @@ import CoreLocation
 import MapKit
 import Combine
 
-// MARK: - Fuel Finder API Response Models
+// MARK: - UK Retailer Feed Response Models
 
-struct FuelFinderStationResponse: Codable, Sendable {
-    let id: String
-    let name: String
-    let brand: String?
-    let lat: Double
-    let lon: Double
+/// Common JSON format used by all UK retailer open data feeds.
+struct RetailerFeedResponse: Codable, Sendable {
+    let lastUpdated: String?
+    let stations: [RetailerStation]
+
+    enum CodingKeys: String, CodingKey {
+        case lastUpdated = "last_updated"
+        case stations
+    }
+}
+
+struct RetailerStation: Codable, Sendable {
+    let siteId: String
+    let brand: String
     let address: String?
-    let amenities: [String]?
-    let prices: FuelFinderPrices
-    let updated: String
-}
-
-struct FuelFinderPrices: Codable, Sendable {
-    let unleaded: Double?
-    let superUnleaded: Double?
-    let diesel: Double?
-    let premiumDiesel: Double?
+    let postcode: String?
+    let location: RetailerLocation
+    let prices: RetailerPrices
 
     enum CodingKeys: String, CodingKey {
-        case unleaded
-        case superUnleaded = "super_unleaded"
-        case diesel
-        case premiumDiesel = "premium_diesel"
+        case siteId = "site_id"
+        case brand, address, postcode, location, prices
     }
 }
 
-struct FuelFinderSearchResponse: Codable, Sendable {
-    let stations: [FuelFinderStationResponse]
-    let total: Int
-    let updatedAt: String
-
-    enum CodingKeys: String, CodingKey {
-        case stations, total
-        case updatedAt = "updated_at"
-    }
+struct RetailerLocation: Codable, Sendable {
+    let latitude: Double
+    let longitude: Double
 }
 
-struct OAuthTokenResponse: Codable, Sendable {
-    let accessToken: String
-    let tokenType: String
-    let expiresIn: Int
+struct RetailerPrices: Codable, Sendable {
+    let e10: Double?  // Unleaded (E10)
+    let e5: Double?   // Super unleaded (E5)
+    let b7: Double?   // Diesel (B7)
+    let sdv: Double?  // Premium diesel (SDV)
 
     enum CodingKeys: String, CodingKey {
-        case accessToken = "access_token"
-        case tokenType = "token_type"
-        case expiresIn = "expires_in"
+        case e10 = "E10"
+        case e5 = "E5"
+        case b7 = "B7"
+        case sdv = "SDV"
     }
 }
 
@@ -62,20 +57,28 @@ final class FuelDataManager: ObservableObject {
 
     // MARK: Published State
 
-    @Published var stationsAlongRoute: [StationWithScore] = []
     @Published var nearbyStations: [StationWithScore] = []
     @Published var isLoading = false
     @Published var lastError: String?
     @Published var lastRefresh: Date?
-    @Published var isDataStale = false
+    @Published var isDataStale = true
 
-    // MARK: Configuration
+    // MARK: UK Retailer Open Data Feed URLs (no auth required)
 
-    /// Replace with real Fuel Finder API credentials
-    private let clientID = "YOUR_FUEL_FINDER_CLIENT_ID"       // Replace with real client ID
-    private let clientSecret = "YOUR_FUEL_FINDER_CLIENT_SECRET" // Replace with real client secret
-    private let baseURL = "https://fuel-finder.api.gov.uk/v1"  // Replace with real Fuel Finder base URL
-    private let tokenURL = "https://fuel-finder.api.gov.uk/v1/auth/token" // Replace with real token endpoint
+    private static let retailerFeeds: [(name: String, url: String)] = [
+        ("Asda", "https://storelocator.asda.com/fuel_prices_data.json"),
+        ("BP", "https://www.bp.com/en_gb/united-kingdom/home/fuelprices/fuel_prices_data.json"),
+        ("Esso", "https://fuelprices.esso.co.uk/latestdata.json"),
+        ("JET", "https://jetlocal.co.uk/fuel_prices_data.json"),
+        ("Morrisons", "https://www.morrisons.com/fuel-prices/fuel.json"),
+        ("Moto", "https://moto-way.com/fuel-price/fuel_prices.json"),
+        ("Motor Fuel Group", "https://fuel.motorfuelgroup.com/fuel_prices_data.json"),
+        ("Rontec", "https://www.rontec-servicestations.co.uk/fuel-prices/data/fuel_prices_data.json"),
+        ("Sainsburys", "https://api.sainsburys.co.uk/v1/exports/latest/fuel_prices_data.json"),
+        ("SGN", "https://www.sgnretail.uk/files/data/SGN_daily_fuel_prices.json"),
+        ("Shell", "https://www.shell.co.uk/fuel-prices-data.json"),
+        ("Tesco", "https://www.tesco.com/fuel_prices/fuel_prices_data.json"),
+    ]
 
     // MARK: Dependencies
 
@@ -83,18 +86,17 @@ final class FuelDataManager: ObservableObject {
     private let routeFinder: RouteStationFinder
     private let session: URLSession
 
-    // MARK: Token Cache
+    // MARK: Refresh Configuration
 
-    private var cachedToken: String?
-    private var tokenExpiry: Date?
+    /// Refresh interval — 12 hours (data updates twice per day).
+    private static let refreshInterval: TimeInterval = 12 * 60 * 60
 
-    // MARK: Request Deduplication
+    /// The app's shared instance — used by CarPlay to avoid a second fetch cycle.
+    nonisolated(unsafe) static var shared: FuelDataManager?
 
-    /// Tracks in-flight refresh regions to prevent duplicate requests.
-    private var inFlightRegions: Set<String> = []
-
-    /// When true, uses bundled MockData.json instead of network calls.
-    var useMockData = true
+    private var refreshInFlight = false
+    private var nearbySearchInFlight = false
+    private var periodicRefreshTask: Task<Void, Never>?
 
     init(coreDataStack: CoreDataStack = .shared) {
         self.coreDataStack = coreDataStack
@@ -107,25 +109,36 @@ final class FuelDataManager: ObservableObject {
         self.session = URLSession(configuration: config)
     }
 
+    /// Start periodic refresh — call once from the app's root view.
+    func startPeriodicRefresh() {
+        periodicRefreshTask?.cancel()
+        periodicRefreshTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(Self.refreshInterval))
+                guard !Task.isCancelled else { break }
+                await self?.refreshStations()
+            }
+        }
+    }
+
+    func stopPeriodicRefresh() {
+        periodicRefreshTask?.cancel()
+        periodicRefreshTask = nil
+    }
+
     // MARK: - Public API
 
-    func refreshStations(near coordinate: CLLocationCoordinate2D, radiusKm: Double = 50) async {
-        // Deduplicate: quantise to ~1km grid to prevent overlapping requests
-        let regionKey = "\(Int(coordinate.latitude * 100))_\(Int(coordinate.longitude * 100))_\(Int(radiusKm))"
-        guard !inFlightRegions.contains(regionKey) else { return }
-        inFlightRegions.insert(regionKey)
-        defer { inFlightRegions.remove(regionKey) }
+    func refreshStations(near coordinate: CLLocationCoordinate2D? = nil, radiusKm: Double = 50) async {
+        guard !refreshInFlight else { return }
+        refreshInFlight = true
+        defer { refreshInFlight = false }
 
         isLoading = true
         lastError = nil
         defer { isLoading = false }
 
         do {
-            if useMockData {
-                try await loadMockData()
-            } else {
-                try await fetchStationsFromAPI(near: coordinate, radiusKm: radiusKm)
-            }
+            try await fetchAllRetailerFeeds()
             lastRefresh = Date()
             isDataStale = false
         } catch {
@@ -134,38 +147,37 @@ final class FuelDataManager: ObservableObject {
         }
     }
 
-    func findStationsAlongRoute(route: MKRoute, fuelType: String = "unleaded", maxDetourKm: Double = 2.0) async {
+    func findNearbyStations(
+        coordinate: CLLocationCoordinate2D,
+        fuelType: String = "unleaded",
+        radiusKm: Double = 16,
+        limit: Int = 50,
+        sortBy: StationSortOrder = .price
+    ) async {
+        guard !nearbySearchInFlight else { return }
+        nearbySearchInFlight = true
+        defer { nearbySearchInFlight = false }
+
         isLoading = true
         defer { isLoading = false }
 
-        // Refresh data near route midpoint if stale
-        let pointCount = route.polyline.pointCount
-        guard pointCount > 0 else { return }
-        let midIndex = pointCount / 2
-        let points = route.polyline.points()
-        let midCoord = points[midIndex].coordinate
-        await refreshStationsIfNeeded(near: midCoord)
+        await refreshStationsIfNeeded()
 
-        // RouteStationFinder uses performAndWait on a background context internally
-        stationsAlongRoute = routeFinder.findStationsAlongRoute(
-            route: route,
-            maxDistanceKm: maxDetourKm,
-            fuelType: fuelType
-        )
-    }
-
-    func findNearbyStations(coordinate: CLLocationCoordinate2D, fuelType: String = "unleaded", limit: Int = 20) async {
-        isLoading = true
-        defer { isLoading = false }
-
-        await refreshStationsIfNeeded(near: coordinate)
-
-        nearbyStations = routeFinder.findNearbyStations(
+        var results = routeFinder.findNearbyStations(
             coordinate: coordinate,
-            radiusKm: 10,
+            radiusKm: radiusKm,
             fuelType: fuelType,
             limit: limit
         )
+
+        switch sortBy {
+        case .price:
+            results.sort { $0.price < $1.price }
+        case .distance:
+            results.sort { $0.distanceKm < $1.distanceKm }
+        }
+
+        nearbyStations = results
     }
 
     /// Checks if cached data is stale and updates the flag.
@@ -174,102 +186,104 @@ final class FuelDataManager: ObservableObject {
             isDataStale = true
             return
         }
-        isDataStale = Date().timeIntervalSince(last) > 86400 // 24 hours
+        isDataStale = Date().timeIntervalSince(last) > Self.refreshInterval
     }
 
-    // MARK: - OAuth2 Token
+    // MARK: - Fetch All Retailer Feeds
 
-    private func getAccessToken() async throws -> String {
-        if let token = cachedToken, let expiry = tokenExpiry, Date() < expiry {
-            return token
+    private func fetchAllRetailerFeeds() async throws {
+        var allStations: [ImportableStation] = []
+        var feedErrors: [String] = []
+
+        // Fetch all feeds concurrently
+        await withTaskGroup(of: (String, Result<[RetailerStation], Error>).self) { group in
+            for feed in Self.retailerFeeds {
+                group.addTask { [session] in
+                    do {
+                        guard let url = URL(string: feed.url) else {
+                            return (feed.name, .failure(FuelFinderError.invalidURL))
+                        }
+                        let (data, response) = try await session.data(from: url)
+                        guard let httpResponse = response as? HTTPURLResponse,
+                              httpResponse.statusCode == 200 else {
+                            return (feed.name, .failure(FuelFinderError.serverError))
+                        }
+                        let feedResponse = try JSONDecoder().decode(RetailerFeedResponse.self, from: data)
+                        return (feed.name, .success(feedResponse.stations))
+                    } catch {
+                        return (feed.name, .failure(error))
+                    }
+                }
+            }
+
+            for await (name, result) in group {
+                switch result {
+                case .success(let stations):
+                    print("[FuelDataManager] \(name): \(stations.count) stations")
+                    allStations.append(contentsOf: stations.map { ImportableStation(retailer: $0) })
+                case .failure(let error):
+                    let msg = "\(name): \(error.localizedDescription)"
+                    print("[FuelDataManager] Feed error — \(msg)")
+                    feedErrors.append(msg)
+                }
+            }
         }
 
-        guard let url = URL(string: tokenURL) else {
-            throw FuelFinderError.invalidURL
+        if allStations.isEmpty {
+            throw FuelFinderError.noDataAvailable(feedErrors)
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        print("[FuelDataManager] Total stations fetched: \(allStations.count)")
+        try await importStations(allStations)
 
-        let body = "grant_type=client_credentials&client_id=\(clientID)&client_secret=\(clientSecret)"
-        request.httpBody = body.data(using: .utf8)
-
-        let (data, response) = try await session.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            cachedToken = nil
-            tokenExpiry = nil
-            throw FuelFinderError.authenticationFailed
+        if !feedErrors.isEmpty {
+            print("[FuelDataManager] \(feedErrors.count) feed(s) failed but data was imported from others")
         }
-
-        let tokenResponse = try JSONDecoder().decode(OAuthTokenResponse.self, from: data)
-        cachedToken = tokenResponse.accessToken
-        tokenExpiry = Date().addingTimeInterval(TimeInterval(tokenResponse.expiresIn - 60))
-        return tokenResponse.accessToken
     }
 
-    // MARK: - API Fetch
+    // MARK: - Importable Station (normalised from retailer format)
 
-    private func fetchStationsFromAPI(near coordinate: CLLocationCoordinate2D, radiusKm: Double) async throws {
-        let token = try await getAccessToken()
+    private struct ImportableStation: Sendable {
+        let id: String
+        let name: String
+        let brand: String
+        let latitude: Double
+        let longitude: Double
+        let address: String
+        let amenities: String
+        let unleaded: Double    // in pounds (£)
+        let superUnleaded: Double
+        let diesel: Double
+        let premiumDiesel: Double
+        let updated: Date
 
-        guard var components = URLComponents(string: "\(baseURL)/stations") else {
-            throw FuelFinderError.invalidURL
+        init(retailer: RetailerStation) {
+            self.id = retailer.siteId
+            self.brand = retailer.brand
+            self.latitude = retailer.location.latitude
+            self.longitude = retailer.location.longitude
+            self.address = [retailer.address, retailer.postcode]
+                .compactMap { $0 }
+                .joined(separator: ", ")
+            self.name = "\(retailer.brand) \(retailer.postcode ?? retailer.address ?? "")"
+            self.amenities = "[]"
+            // Convert from pence to pounds
+            self.unleaded = (retailer.prices.e10 ?? 0) / 100.0
+            self.superUnleaded = (retailer.prices.e5 ?? 0) / 100.0
+            self.diesel = (retailer.prices.b7 ?? 0) / 100.0
+            self.premiumDiesel = (retailer.prices.sdv ?? 0) / 100.0
+            self.updated = Date()
         }
-
-        components.queryItems = [
-            URLQueryItem(name: "lat", value: String(coordinate.latitude)),
-            URLQueryItem(name: "lon", value: String(coordinate.longitude)),
-            URLQueryItem(name: "radius", value: "\(Int(radiusKm))km")
-        ]
-
-        guard let url = components.url else {
-            throw FuelFinderError.invalidURL
-        }
-
-        var request = URLRequest(url: url)
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-
-        let (data, response) = try await session.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw FuelFinderError.serverError
-        }
-
-        let apiResponse = try JSONDecoder().decode(FuelFinderSearchResponse.self, from: data)
-        try await importStations(apiResponse.stations)
-    }
-
-    // MARK: - Mock Data
-
-    private func loadMockData() async throws {
-        guard let url = Bundle.main.url(forResource: "MockData", withExtension: "json") else {
-            throw FuelFinderError.mockDataNotFound
-        }
-
-        let data = try Data(contentsOf: url)
-        let stations = try JSONDecoder().decode([FuelFinderStationResponse].self, from: data)
-        try await importStations(stations)
     }
 
     // MARK: - Core Data Import
 
-    private func importStations(_ apiStations: [FuelFinderStationResponse]) async throws {
+    private func importStations(_ stations: [ImportableStation]) async throws {
         let context = coreDataStack.newBackgroundContext()
-        // Pre-encode amenities once on calling thread for each station that has them
-        let amenitiesCache: [String: String] = apiStations.reduce(into: [:]) { dict, s in
-            if let amenities = s.amenities {
-                dict[s.id] = (try? JSONEncoder().encode(amenities))
-                    .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
-            }
-        }
 
         try await context.perform {
-            let isoFormatter = ISO8601DateFormatter()
-            // Batch fetch all existing stations in one query instead of N individual fetches
-            let ids = apiStations.map(\.id)
+            // Batch fetch all existing stations in one query
+            let ids = stations.map(\.id)
             let fetchRequest: NSFetchRequest<Station> = Station.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id IN %@", ids)
             fetchRequest.returnsObjectsAsFaults = false
@@ -281,26 +295,28 @@ final class FuelDataManager: ObservableObject {
             }
 
             let now = Date()
-            for apiStation in apiStations {
+            for importable in stations {
+                // Skip stations with no valid prices
+                guard importable.unleaded > 0 || importable.diesel > 0 else { continue }
+                // Skip stations with invalid coordinates
+                guard importable.latitude != 0 && importable.longitude != 0 else { continue }
+
                 let station: Station
-                if let existing = existingByID[apiStation.id] {
+                if let existing = existingByID[importable.id] {
                     station = existing
                 } else {
                     station = Station(context: context)
-                    station.id = apiStation.id
+                    station.id = importable.id
                     station.isFavourite = false
                 }
 
-                station.name = apiStation.name
-                station.brand = apiStation.brand ?? ""
-                station.latitude = apiStation.lat
-                station.longitude = apiStation.lon
-                station.address = apiStation.address ?? ""
+                station.name = importable.name
+                station.brand = importable.brand
+                station.latitude = importable.latitude
+                station.longitude = importable.longitude
+                station.address = importable.address
                 station.lastUpdated = now
-
-                if let encoded = amenitiesCache[apiStation.id] {
-                    station.amenities = encoded
-                }
+                station.amenities = importable.amenities
 
                 let priceSet: PriceSet
                 if let existing = station.prices {
@@ -311,11 +327,11 @@ final class FuelDataManager: ObservableObject {
                     station.prices = priceSet
                 }
 
-                priceSet.unleaded = apiStation.prices.unleaded ?? 0
-                priceSet.superUnleaded = apiStation.prices.superUnleaded ?? 0
-                priceSet.diesel = apiStation.prices.diesel ?? 0
-                priceSet.premiumDiesel = apiStation.prices.premiumDiesel ?? 0
-                priceSet.updatedAt = isoFormatter.date(from: apiStation.updated) ?? now
+                priceSet.unleaded = importable.unleaded
+                priceSet.superUnleaded = importable.superUnleaded
+                priceSet.diesel = importable.diesel
+                priceSet.premiumDiesel = importable.premiumDiesel
+                priceSet.updatedAt = importable.updated
             }
 
             try context.save()
@@ -324,11 +340,11 @@ final class FuelDataManager: ObservableObject {
 
     // MARK: - Helpers
 
-    private func refreshStationsIfNeeded(near coordinate: CLLocationCoordinate2D) async {
-        if let last = lastRefresh, Date().timeIntervalSince(last) < 3600 {
+    private func refreshStationsIfNeeded() async {
+        if let last = lastRefresh, Date().timeIntervalSince(last) < Self.refreshInterval {
             return
         }
-        await refreshStations(near: coordinate)
+        await refreshStations()
     }
 }
 
@@ -336,18 +352,17 @@ final class FuelDataManager: ObservableObject {
 
 enum FuelFinderError: LocalizedError {
     case invalidURL
-    case authenticationFailed
     case serverError
-    case mockDataNotFound
+    case noDataAvailable([String])
     case decodingFailed
 
     var errorDescription: String? {
         switch self {
-        case .invalidURL: return "Invalid Fuel Finder API URL"
-        case .authenticationFailed: return "Fuel Finder authentication failed — check API credentials"
-        case .serverError: return "Fuel Finder server returned an error"
-        case .mockDataNotFound: return "MockData.json not found in bundle"
-        case .decodingFailed: return "Failed to decode Fuel Finder response"
+        case .invalidURL: return "Invalid fuel data URL"
+        case .serverError: return "Fuel price server returned an error"
+        case .noDataAvailable(let errors):
+            return "Could not fetch fuel prices from any retailer. Errors: \(errors.joined(separator: "; "))"
+        case .decodingFailed: return "Failed to decode fuel price response"
         }
     }
 }

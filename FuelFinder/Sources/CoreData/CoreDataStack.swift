@@ -52,38 +52,18 @@ final class CoreDataStack: Sendable {
             description.type = NSInMemoryStoreType
             description.url = URL(fileURLWithPath: "/dev/null")
             container.persistentStoreDescriptions = [description]
-        } else {
-            guard let description = container.persistentStoreDescriptions.first else {
-                fatalError("No persistent store descriptions found")
-            }
-
-            #if targetEnvironment(simulator)
-            // CloudKit is unreliable in the simulator — use local SQLite only
+        } else if let description = container.persistentStoreDescriptions.first {
+            // iCloud entitlement not yet provisioned — using local SQLite only.
+            // To re-enable CloudKit: add com.apple.developer.icloud-containers to
+            // the entitlements file and set cloudKitContainerOptions here.
             description.cloudKitContainerOptions = nil
-            #else
-            description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
-                containerIdentifier: "iCloud.dev.dreamfold.fuelfinder"
-            )
-            #endif
-
             description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
             description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
         }
 
-        container.loadPersistentStores { [weak container] description, error in
+        container.loadPersistentStores { _, error in
             if let error {
                 print("[CoreDataStack] Failed to load store: \(error.localizedDescription)")
-
-                // Fallback: strip CloudKit options and retry with local-only SQLite
-                if description.cloudKitContainerOptions != nil {
-                    print("[CoreDataStack] Retrying without CloudKit...")
-                    description.cloudKitContainerOptions = nil
-                    container?.loadPersistentStores { _, retryError in
-                        if let retryError {
-                            print("[CoreDataStack] Fallback also failed: \(retryError.localizedDescription)")
-                        }
-                    }
-                }
             }
         }
 

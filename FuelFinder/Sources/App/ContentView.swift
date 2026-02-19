@@ -12,11 +12,11 @@ struct ContentView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
-                RouteView()
+                NearbyView()
                     .glassNavigation()
             }
             .tabItem {
-                Label("Route", systemImage: "map")
+                Label("Map", systemImage: "map")
             }
             .tag(0)
 
@@ -40,7 +40,8 @@ struct ContentView: View {
         }
         .tint(AppColors.primary)
         .task {
-            await dataManager.refreshStations(near: locationService.effectiveLocation)
+            await dataManager.refreshStations()
+            dataManager.startPeriodicRefresh()
         }
     }
 }
@@ -98,6 +99,18 @@ struct FavouritesView: View {
                         .minimumTapTarget()
                     }
                     .padding(.vertical, Spacing.xs)
+                    .swipeActions(edge: .trailing) {
+                        Button {
+                            let mapItem = MKMapItem(placemark: MKPlacemark(coordinate: station.coordinate))
+                            mapItem.name = station.name ?? "Station"
+                            mapItem.openInMaps(launchOptions: [
+                                MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
+                            ])
+                        } label: {
+                            Label("Directions", systemImage: "arrow.triangle.turn.up.right.diamond")
+                        }
+                        .tint(AppColors.primary)
+                    }
                 }
             }
         }
@@ -116,7 +129,7 @@ struct AppSettingsView: View {
         Form {
             Section {
                 LabeledContent("Version", value: "1.0.0")
-                LabeledContent("Data Source", value: "UK Fuel Finder")
+                LabeledContent("Data Source", value: "UK Retailer Open Data")
             } header: {
                 GlassSectionHeader("About", icon: "info.circle")
             }
@@ -135,17 +148,13 @@ struct AppSettingsView: View {
 
                 Button {
                     Task {
-                        await dataManager.refreshStations(near: locationService.effectiveLocation)
+                        await dataManager.refreshStations()
                     }
                 } label: {
                     Label("Refresh All Prices", systemImage: "arrow.clockwise")
                         .foregroundStyle(AppColors.primary)
                 }
 
-                Toggle("Use Mock Data", isOn: Binding(
-                    get: { dataManager.useMockData },
-                    set: { dataManager.useMockData = $0 }
-                ))
             } header: {
                 GlassSectionHeader("Data Management", icon: "externaldrive")
             }
@@ -176,7 +185,7 @@ struct AppSettingsView: View {
             }
 
             Section {
-                Text("Fuel price data sourced from the UK Government Fuel Finder service. Prices are indicative and may not reflect real-time pricing.")
+                Text("Fuel price data sourced from UK retailer open data feeds published under the CMA fuel price transparency scheme. Prices are updated regularly but may not reflect real-time pricing.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } header: {
@@ -196,3 +205,4 @@ struct AppSettingsView: View {
         .environmentObject(LocationService())
         .environment(\.managedObjectContext, CoreDataStack.preview.viewContext)
 }
+

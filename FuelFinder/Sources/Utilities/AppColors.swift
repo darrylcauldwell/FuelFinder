@@ -17,54 +17,38 @@ struct AppColors {
     // MARK: - Primary Blue Theme Colors (shared with TetraTrack)
 
     /// Main brand blue — primary actions and key UI elements
-    static var primary: Color {
-        Color(light: .init(red: 0.15, green: 0.45, blue: 0.85),
-              dark: .init(red: 0.35, green: 0.6, blue: 1.0))
-    }
+    static let primary = Color(light: .init(red: 0.15, green: 0.45, blue: 0.85),
+                                dark: .init(red: 0.35, green: 0.6, blue: 1.0))
 
     /// Lighter blue for secondary elements
-    static var secondary: Color {
-        Color(light: .init(red: 0.4, green: 0.65, blue: 0.95),
-              dark: .init(red: 0.5, green: 0.7, blue: 1.0))
-    }
+    static let secondary = Color(light: .init(red: 0.4, green: 0.65, blue: 0.95),
+                                  dark: .init(red: 0.5, green: 0.7, blue: 1.0))
 
     /// Accent blue — brighter for highlights
-    static var accent: Color {
-        Color(light: .init(red: 0.0, green: 0.5, blue: 1.0),
-              dark: .init(red: 0.3, green: 0.7, blue: 1.0))
-    }
+    static let accent = Color(light: .init(red: 0.0, green: 0.5, blue: 1.0),
+                               dark: .init(red: 0.3, green: 0.7, blue: 1.0))
 
     /// Deep blue for contrast elements
-    static var deep: Color {
-        Color(light: .init(red: 0.1, green: 0.3, blue: 0.6),
-              dark: .init(red: 0.25, green: 0.5, blue: 0.85))
-    }
+    static let deep = Color(light: .init(red: 0.1, green: 0.3, blue: 0.6),
+                             dark: .init(red: 0.25, green: 0.5, blue: 0.85))
 
     /// Light blue for backgrounds and fills
-    static var light: Color {
-        Color(light: .init(red: 0.85, green: 0.92, blue: 1.0),
-              dark: .init(red: 0.15, green: 0.25, blue: 0.4))
-    }
+    static let light = Color(light: .init(red: 0.85, green: 0.92, blue: 1.0),
+                              dark: .init(red: 0.15, green: 0.25, blue: 0.4))
 
     // MARK: - Fuel Price Tier Colors
 
     /// Cheapest price tier — green
-    static var priceCheap: Color {
-        Color(light: .init(red: 0.2, green: 0.7, blue: 0.4),
-              dark: .init(red: 0.35, green: 0.85, blue: 0.5))
-    }
+    static let priceCheap = Color(light: .init(red: 0.2, green: 0.7, blue: 0.4),
+                                   dark: .init(red: 0.35, green: 0.85, blue: 0.5))
 
     /// Middle price tier — amber
-    static var priceMid: Color {
-        Color(light: .init(red: 0.95, green: 0.65, blue: 0.15),
-              dark: .init(red: 1.0, green: 0.75, blue: 0.35))
-    }
+    static let priceMid = Color(light: .init(red: 0.95, green: 0.65, blue: 0.15),
+                                 dark: .init(red: 1.0, green: 0.75, blue: 0.35))
 
     /// Expensive price tier — red
-    static var priceExpensive: Color {
-        Color(light: .init(red: 0.9, green: 0.25, blue: 0.25),
-              dark: .init(red: 1.0, green: 0.4, blue: 0.4))
-    }
+    static let priceExpensive = Color(light: .init(red: 0.9, green: 0.25, blue: 0.25),
+                                       dark: .init(red: 1.0, green: 0.4, blue: 0.4))
 
     /// Returns colour for a price tier (0=cheap, 1=mid, 2=expensive)
     static func priceTier(_ tier: Int) -> Color {
@@ -78,28 +62,20 @@ struct AppColors {
     // MARK: - Fuel Type Colors
 
     /// Unleaded fuel
-    static var unleaded: Color {
-        Color(light: .init(red: 0.2, green: 0.65, blue: 0.7),
-              dark: .init(red: 0.35, green: 0.8, blue: 0.85))
-    }
+    static let unleaded = Color(light: .init(red: 0.2, green: 0.65, blue: 0.7),
+                                 dark: .init(red: 0.35, green: 0.8, blue: 0.85))
 
     /// Diesel fuel
-    static var diesel: Color {
-        Color(light: .init(red: 0.2, green: 0.5, blue: 0.9),
-              dark: .init(red: 0.4, green: 0.65, blue: 1.0))
-    }
+    static let diesel = Color(light: .init(red: 0.2, green: 0.5, blue: 0.9),
+                               dark: .init(red: 0.4, green: 0.65, blue: 1.0))
 
     /// Super unleaded
-    static var superUnleaded: Color {
-        Color(light: .init(red: 0.45, green: 0.35, blue: 0.85),
-              dark: .init(red: 0.6, green: 0.5, blue: 1.0))
-    }
+    static let superUnleaded = Color(light: .init(red: 0.45, green: 0.35, blue: 0.85),
+                                      dark: .init(red: 0.6, green: 0.5, blue: 1.0))
 
     /// Premium diesel
-    static var premiumDiesel: Color {
-        Color(light: .init(red: 0.3, green: 0.2, blue: 0.7),
-              dark: .init(red: 0.5, green: 0.4, blue: 0.9))
-    }
+    static let premiumDiesel = Color(light: .init(red: 0.3, green: 0.2, blue: 0.7),
+                                      dark: .init(red: 0.5, green: 0.4, blue: 0.9))
 
     /// Returns colour for a fuel type key
     static func fuelType(_ type: String) -> Color {
@@ -128,68 +104,54 @@ struct AppColors {
     // MARK: - Status Colors (shared with TetraTrack)
 
     /// Active/Success — green
-    static var active: Color {
-        Color(light: .init(red: 0.2, green: 0.7, blue: 0.4),
-              dark: .init(red: 0.35, green: 0.85, blue: 0.5))
-    }
+    static let active = Color(light: .init(red: 0.2, green: 0.7, blue: 0.4),
+                               dark: .init(red: 0.35, green: 0.85, blue: 0.5))
 
     /// Inactive — blue-gray
-    static var inactive: Color {
-        Color(light: .init(red: 0.5, green: 0.55, blue: 0.65),
-              dark: .init(red: 0.45, green: 0.5, blue: 0.6))
-    }
+    static let inactive = Color(light: .init(red: 0.5, green: 0.55, blue: 0.65),
+                                 dark: .init(red: 0.45, green: 0.5, blue: 0.6))
 
     /// Warning — amber
-    static var warning: Color {
-        Color(light: .init(red: 0.95, green: 0.65, blue: 0.15),
-              dark: .init(red: 1.0, green: 0.75, blue: 0.35))
-    }
+    static let warning = Color(light: .init(red: 0.95, green: 0.65, blue: 0.15),
+                                dark: .init(red: 1.0, green: 0.75, blue: 0.35))
 
     /// Error — red
-    static var error: Color {
-        Color(light: .init(red: 0.9, green: 0.25, blue: 0.25),
-              dark: .init(red: 1.0, green: 0.4, blue: 0.4))
-    }
+    static let error = Color(light: .init(red: 0.9, green: 0.25, blue: 0.25),
+                              dark: .init(red: 1.0, green: 0.4, blue: 0.4))
 
-    static var success: Color { active }
-    static var destructive: Color { error }
+    static let success: Color = active
+    static let destructive: Color = error
 
     // MARK: - Surface Colors (shared with TetraTrack)
 
     /// Card background — subtle blue tint
-    static var cardBackground: Color {
-        Color(light: .init(red: 0.94, green: 0.96, blue: 0.99),
-              dark: .init(red: 0.12, green: 0.14, blue: 0.18))
-    }
+    static let cardBackground = Color(light: .init(red: 0.94, green: 0.96, blue: 0.99),
+                                       dark: .init(red: 0.12, green: 0.14, blue: 0.18))
 
     /// Elevated surface — lighter blue tint
-    static var elevatedSurface: Color {
-        Color(light: .init(red: 0.97, green: 0.98, blue: 1.0),
-              dark: .init(red: 0.16, green: 0.18, blue: 0.22))
-    }
+    static let elevatedSurface = Color(light: .init(red: 0.97, green: 0.98, blue: 1.0),
+                                        dark: .init(red: 0.16, green: 0.18, blue: 0.22))
 
     // MARK: - Route Colors
 
     /// Route polyline colour
-    static var routeLine: Color { primary }
+    static let routeLine: Color = primary
 
     /// Selected station highlight
-    static var stationSelected: Color { accent }
+    static let stationSelected: Color = accent
 
     /// Detour route overlay
-    static var detourLine: Color { secondary }
+    static let detourLine: Color = secondary
 
     // MARK: - Stale Data
 
     /// Stale data banner background
-    static var staleBanner: Color { warning }
+    static let staleBanner: Color = warning
 
     // MARK: - Neutral
 
-    static var neutralGray: Color {
-        Color(light: .init(red: 0.55, green: 0.55, blue: 0.6),
-              dark: .init(red: 0.5, green: 0.5, blue: 0.55))
-    }
+    static let neutralGray = Color(light: .init(red: 0.55, green: 0.55, blue: 0.6),
+                                    dark: .init(red: 0.5, green: 0.5, blue: 0.55))
 }
 
 // MARK: - Color Extension for Light/Dark

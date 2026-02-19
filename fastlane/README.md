@@ -63,6 +63,14 @@ Upload a new build to TestFlight
 
 Submit a new build to App Store Connect with metadata and screenshots
 
+### ios submit
+
+```sh
+[bundle exec] fastlane ios submit
+```
+
+Submit the latest build for App Store review
+
 ### ios metadata
 
 ```sh
@@ -70,6 +78,46 @@ Submit a new build to App Store Connect with metadata and screenshots
 ```
 
 Upload metadata and screenshots only
+
+### ios setup_store
+
+```sh
+[bundle exec] fastlane ios setup_store
+```
+
+Set age rating (all NONE) and pricing (Free) on App Store Connect
+
+### ios set_privacy
+
+```sh
+[bundle exec] fastlane ios set_privacy
+```
+
+Set app privacy data usage declarations (requires Apple ID session auth with 2FA)
+
+### ios set_privacy_api
+
+```sh
+[bundle exec] fastlane ios set_privacy_api
+```
+
+Set app privacy data usage declarations (API key - deprecated endpoint)
+
+### ios submit_api
+
+```sh
+[bundle exec] fastlane ios submit_api
+```
+
+Submit for review via direct API call
+
+### ios diagnose
+
+```sh
+[bundle exec] fastlane ios diagnose
+```
+
+Check what is blocking App Store submission
 
 ----
 

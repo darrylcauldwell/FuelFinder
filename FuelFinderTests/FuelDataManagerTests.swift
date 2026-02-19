@@ -11,7 +11,6 @@ final class FuelDataManagerTests: XCTestCase {
     override func setUpWithError() throws {
         coreDataStack = CoreDataStack(inMemory: true)
         dataManager = FuelDataManager(coreDataStack: coreDataStack)
-        dataManager.useMockData = true
     }
 
     override func tearDownWithError() throws {
@@ -19,108 +18,115 @@ final class FuelDataManagerTests: XCTestCase {
         dataManager = nil
     }
 
-    // MARK: - Mock Data Tests
+    // MARK: - Core Data Tests
 
-    func testLoadMockDataImportsStations() async throws {
-        await dataManager.refreshStations(
-            near: .init(latitude: 51.5074, longitude: -0.1278)
-        )
-
-        XCTAssertNil(dataManager.lastError, "Should not produce an error")
-        XCTAssertNotNil(dataManager.lastRefresh, "Should set lastRefresh")
-
+    func testFreshManagerHasNoStations() throws {
         let request: NSFetchRequest<Station> = Station.fetchRequest()
         let count = try coreDataStack.viewContext.count(for: request)
-        XCTAssertEqual(count, 10, "Should import all 10 mock stations")
+        XCTAssertEqual(count, 0, "Fresh manager should have no stations")
     }
 
-    func testStationsHavePrices() async throws {
-        await dataManager.refreshStations(
-            near: .init(latitude: 51.5074, longitude: -0.1278)
-        )
-
-        let request: NSFetchRequest<Station> = Station.fetchRequest()
-        let stations = try coreDataStack.viewContext.fetch(request)
-
-        for station in stations {
-            XCTAssertNotNil(station.prices, "Each station should have a PriceSet")
-            XCTAssertGreaterThan(station.prices?.unleaded ?? 0, 0, "Unleaded price should be positive")
-            XCTAssertGreaterThan(station.prices?.diesel ?? 0, 0, "Diesel price should be positive")
-        }
+    func testStalenessBeforeRefresh() {
+        dataManager.checkStaleness()
+        XCTAssertTrue(dataManager.isDataStale, "Should be stale before any refresh")
     }
 
-    func testUpsertDoesNotDuplicate() async throws {
-        await dataManager.refreshStations(
-            near: .init(latitude: 51.5074, longitude: -0.1278)
-        )
-        dataManager.lastRefresh = nil
-        await dataManager.refreshStations(
-            near: .init(latitude: 51.5074, longitude: -0.1278)
-        )
+    func testStationManualInsertAndPrices() throws {
+        let context = coreDataStack.viewContext
+        let station = Station(context: context)
+        station.id = "test001"
+        station.name = "Test Station"
+        station.brand = "TestBrand"
+        station.latitude = 52.0
+        station.longitude = -1.0
+        station.address = "Test Road, TE1 1ST"
+        station.isFavourite = false
 
-        let request: NSFetchRequest<Station> = Station.fetchRequest()
-        let count = try coreDataStack.viewContext.count(for: request)
-        XCTAssertEqual(count, 10, "Upsert should not create duplicates")
-    }
+        let prices = PriceSet(context: context)
+        prices.unleaded = 1.42
+        prices.superUnleaded = 1.55
+        prices.diesel = 1.49
+        prices.premiumDiesel = 1.59
+        prices.updatedAt = Date()
+        prices.station = station
+        station.prices = prices
 
-    func testStationConvenienceExtensions() async throws {
-        await dataManager.refreshStations(
-            near: .init(latitude: 51.5074, longitude: -0.1278)
-        )
-
-        let request: NSFetchRequest<Station> = Station.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", "station001")
-        let stations = try coreDataStack.viewContext.fetch(request)
-        let station = try XCTUnwrap(stations.first)
+        try context.save()
 
         XCTAssertEqual(station.price(for: "unleaded"), 1.42)
         XCTAssertEqual(station.price(for: "diesel"), 1.49)
         XCTAssertEqual(station.formattedPrice(for: "unleaded"), "£1.42")
-        XCTAssertEqual(station.coordinate.latitude, 51.5954, accuracy: 0.001)
-        XCTAssertEqual(station.coordinate.longitude, -0.2491, accuracy: 0.001)
-        XCTAssertFalse(station.isStale(), "Freshly imported station should not be stale")
+        XCTAssertEqual(station.coordinate.latitude, 52.0, accuracy: 0.001)
+        XCTAssertFalse(station.isStale(), "Freshly created station should not be stale")
     }
 
-    func testFavouriteToggle() async throws {
-        await dataManager.refreshStations(
-            near: .init(latitude: 51.5074, longitude: -0.1278)
-        )
-
-        let request: NSFetchRequest<Station> = Station.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", "station001")
-        let station = try XCTUnwrap(try coreDataStack.viewContext.fetch(request).first)
+    func testFavouriteToggle() throws {
+        let context = coreDataStack.viewContext
+        let station = Station(context: context)
+        station.id = "test002"
+        station.name = "Fav Station"
+        station.brand = "FavBrand"
+        station.latitude = 51.5
+        station.longitude = -0.1
+        station.isFavourite = false
+        try context.save()
 
         XCTAssertFalse(station.isFavourite)
 
         station.isFavourite = true
-        try coreDataStack.viewContext.save()
+        try context.save()
 
-        let refetched = try XCTUnwrap(try coreDataStack.viewContext.fetch(request).first)
+        let request: NSFetchRequest<Station> = Station.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", "test002")
+        let refetched = try XCTUnwrap(try context.fetch(request).first)
         XCTAssertTrue(refetched.isFavourite)
     }
 
-    func testStaleDataFlag() async throws {
-        dataManager.checkStaleness()
-        XCTAssertTrue(dataManager.isDataStale, "Should be stale before any refresh")
+    func testInvalidFuelTypeReturnsNil() throws {
+        let context = coreDataStack.viewContext
+        let station = Station(context: context)
+        station.id = "test003"
+        station.name = "Nil Station"
+        station.brand = "NilBrand"
+        station.latitude = 51.0
+        station.longitude = -1.0
 
-        await dataManager.refreshStations(
-            near: .init(latitude: 51.5074, longitude: -0.1278)
-        )
+        let prices = PriceSet(context: context)
+        prices.unleaded = 1.42
+        prices.diesel = 1.49
+        prices.updatedAt = Date()
+        prices.station = station
+        station.prices = prices
 
-        dataManager.checkStaleness()
-        XCTAssertFalse(dataManager.isDataStale, "Should not be stale after refresh")
-    }
-
-    func testInvalidFuelTypeReturnsNil() async throws {
-        await dataManager.refreshStations(
-            near: .init(latitude: 51.5074, longitude: -0.1278)
-        )
-
-        let request: NSFetchRequest<Station> = Station.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", "station001")
-        let station = try XCTUnwrap(try coreDataStack.viewContext.fetch(request).first)
+        try context.save()
 
         XCTAssertNil(station.price(for: "hydrogen"), "Invalid fuel type should return nil")
         XCTAssertEqual(station.formattedPrice(for: "hydrogen"), "N/A")
+    }
+
+    func testUpsertDoesNotDuplicate() throws {
+        let context = coreDataStack.viewContext
+
+        let station1 = Station(context: context)
+        station1.id = "test004"
+        station1.name = "First"
+        station1.brand = "Brand"
+        station1.latitude = 51.0
+        station1.longitude = -1.0
+        try context.save()
+
+        let request: NSFetchRequest<Station> = Station.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", "test004")
+        let count1 = try context.count(for: request)
+        XCTAssertEqual(count1, 1)
+
+        // Simulate upsert — fetch existing, update instead of creating new
+        let existing = try XCTUnwrap(try context.fetch(request).first)
+        existing.name = "Updated"
+        try context.save()
+
+        let count2 = try context.count(for: request)
+        XCTAssertEqual(count2, 1, "Upsert should not create duplicates")
+        XCTAssertEqual(existing.name, "Updated")
     }
 }

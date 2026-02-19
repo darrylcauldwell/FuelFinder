@@ -9,7 +9,7 @@
     <key>CFBundleIdentifier</key>
     <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
     <key>CFBundleVersion</key>
-    <string>4</string>
+    <string>6</string>
     <key>CFBundleShortVersionString</key>
     <string>1.0.0</string>
     <key>CFBundlePackageType</key>
@@ -28,17 +28,6 @@
         <true/>
         <key>UISceneConfigurations</key>
         <dict>
-            <!-- iPhone Window Scene -->
-            <key>UIWindowSceneSessionRoleApplication</key>
-            <array>
-                <dict>
-                    <key>UISceneConfigurationName</key>
-                    <string>Default Configuration</string>
-                    <key>UISceneDelegateClassName</key>
-                    <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
-                </dict>
-            </array>
-
             <!-- CarPlay Scene (Fueling) -->
             <key>CPTemplateApplicationSceneSessionRoleApplication</key>
             <array>

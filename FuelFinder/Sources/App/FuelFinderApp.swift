@@ -3,19 +3,19 @@ import SwiftUI
 @main
 struct FuelFinderApp: App {
 
-    let coreDataStack = CoreDataStack.shared
     @StateObject private var dataManager: FuelDataManager
     @StateObject private var locationService = LocationService()
 
     init() {
-        let stack = CoreDataStack.shared
-        _dataManager = StateObject(wrappedValue: FuelDataManager(coreDataStack: stack))
+        let dm = FuelDataManager(coreDataStack: .shared)
+        _dataManager = StateObject(wrappedValue: dm)
+        FuelDataManager.shared = dm
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environment(\.managedObjectContext, coreDataStack.viewContext)
+                .environment(\.managedObjectContext, CoreDataStack.shared.viewContext)
                 .environmentObject(dataManager)
                 .environmentObject(locationService)
         }

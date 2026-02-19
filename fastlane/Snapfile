@@ -1,7 +1,7 @@
 devices([
-  "iPhone 16 Pro",
-  "iPhone 16 Pro Max",
-  "iPad Pro 13-inch (M4)"
+  "Screenshot-iPhone16Pro",
+  "Screenshot-iPhone16ProMax",
+  "Screenshot-iPadPro13M5"
 ])
 
 languages(["en-GB"])

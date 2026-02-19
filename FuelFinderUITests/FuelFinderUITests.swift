@@ -13,9 +13,9 @@ final class FuelFinderUITests: XCTestCase {
 
     // MARK: - Tab Navigation
 
-    func testRouteTabIsDefault() throws {
-        let routeTab = app.tabBars.buttons["Route"]
-        XCTAssertTrue(routeTab.isSelected, "Route tab should be selected by default")
+    func testMapTabIsDefault() throws {
+        let mapTab = app.tabBars.buttons["Map"]
+        XCTAssertTrue(mapTab.isSelected, "Map tab should be selected by default")
     }
 
     func testCanSwitchToFavouritesTab() throws {
@@ -28,38 +28,20 @@ final class FuelFinderUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Settings"].exists)
     }
 
-    // MARK: - Route View
+    // MARK: - Map View
 
-    func testRouteViewHasOriginAndDestinationFields() throws {
-        XCTAssertTrue(app.textFields["Origin"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.textFields["Destination"].exists)
+    func testMapViewDoesNotHaveRouteFields() throws {
+        XCTAssertFalse(app.textFields["Origin"].exists, "Should not have Origin field")
+        XCTAssertFalse(app.textFields["Destination"].exists, "Should not have Destination field")
+        XCTAssertFalse(app.buttons["Plan Route"].exists, "Should not have Plan Route button")
     }
 
-    func testPlanRouteButtonDisabledWithoutInput() throws {
-        let planButton = app.buttons["Plan Route"]
-        XCTAssertTrue(planButton.exists)
-        XCTAssertFalse(planButton.isEnabled)
-    }
-
-    func testPlanRouteButtonEnabledWithInput() throws {
-        let originField = app.textFields["Origin"]
-        originField.tap()
-        originField.typeText("London")
-
-        let destField = app.textFields["Destination"]
-        destField.tap()
-        destField.typeText("Birmingham")
-
-        let planButton = app.buttons["Plan Route"]
-        XCTAssertTrue(planButton.isEnabled)
+    func testFuelTypePicker() throws {
+        let picker = app.segmentedControls.firstMatch
+        XCTAssertTrue(picker.waitForExistence(timeout: 5), "Fuel type picker should be visible")
     }
 
     // MARK: - Settings View
-
-    func testSettingsShowsMockDataToggle() throws {
-        app.tabBars.buttons["Settings"].tap()
-        XCTAssertTrue(app.switches["Use Mock Data"].waitForExistence(timeout: 3))
-    }
 
     func testSettingsShowsRefreshButton() throws {
         app.tabBars.buttons["Settings"].tap()
@@ -70,8 +52,6 @@ final class FuelFinderUITests: XCTestCase {
 
     func testFavouritesShowsEmptyState() throws {
         app.tabBars.buttons["Favourites"].tap()
-        // With mock data, some stations are favourites, but the empty state text
-        // should appear if none are favourited
         let navBar = app.navigationBars["Favourites"]
         XCTAssertTrue(navBar.waitForExistence(timeout: 3))
     }

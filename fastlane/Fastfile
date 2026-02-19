@@ -56,9 +56,8 @@ platform :ios do
       project: "FuelFinder.xcodeproj",
       scheme: "FuelFinder",
       devices: [
-        "iPhone 16 Pro",
-        "iPhone 16 Pro Max",
-        "iPad Pro 13-inch (M4)"
+        "iPhone 17 Pro",
+        "iPhone 17 Pro Max"
       ],
       languages: ["en-GB"],
       output_directory: "./fastlane/screenshots",
@@ -123,6 +122,29 @@ platform :ios do
   end
 
   # ───────────────────────────────────────────
+  # Submit for Review (no new build)
+  # ───────────────────────────────────────────
+
+  desc "Submit the latest build for App Store review"
+  lane :submit do
+    upload_to_app_store(
+      api_key: api_key,
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      skip_metadata: true,
+      submit_for_review: true,
+      automatic_release: false,
+      precheck_include_in_app_purchases: false,
+      submission_information: {
+        export_compliance_uses_encryption: false,
+        export_compliance_encryption_updated: false,
+        add_id_info_uses_idfa: false
+      },
+      build_number: lane_context[SharedValues::BUILD_NUMBER] || get_build_number(xcodeproj: "FuelFinder.xcodeproj")
+    )
+  end
+
+  # ───────────────────────────────────────────
   # Metadata only (no binary)
   # ───────────────────────────────────────────
 
@@ -137,6 +159,965 @@ platform :ios do
       metadata_path: "./fastlane/metadata",
       screenshots_path: "./fastlane/screenshots"
     )
+  end
+
+  # ───────────────────────────────────────────
+  # Setup: Age Rating + Pricing
+  # ───────────────────────────────────────────
+
+  desc "Set age rating (all NONE) and pricing (Free) on App Store Connect"
+  lane :setup_store do
+    key = api_key
+
+    app = Spaceship::ConnectAPI::App.find("dev.dreamfold.fuelfinder")
+    UI.message("App: #{app.name} (#{app.bundle_id})")
+
+    token = Spaceship::ConnectAPI.token
+    require "net/http"
+    require "json"
+    require "uri"
+
+    base_url = "https://api.appstoreconnect.apple.com/v1"
+    headers = {
+      "Authorization" => "Bearer #{token.text}",
+      "Content-Type" => "application/json"
+    }
+    uri_base = URI(base_url)
+    http = Net::HTTP.new(uri_base.host, uri_base.port)
+    http.use_ssl = true
+
+    # --- Age Rating (via AppInfo, not AppStoreVersion) ---
+    # Get the app info which contains the age rating declaration
+    info_resp = http.request(Net::HTTP::Get.new("#{base_url}/apps/#{app.id}/appInfos", headers))
+    app_infos = JSON.parse(info_resp.body)
+    app_info_id = app_infos["data"].first["id"]
+    UI.message("AppInfo ID: #{app_info_id}")
+
+    # Get age rating declaration from app info
+    ard_resp = http.request(Net::HTTP::Get.new("#{base_url}/appInfos/#{app_info_id}/ageRatingDeclaration", headers))
+    ard_data = JSON.parse(ard_resp.body)
+    ard_id = ard_data["data"]["id"]
+    UI.message("Age Rating Declaration ID: #{ard_id}")
+
+    # Update age rating - all NONE for a fuel finder app
+    age_body = {
+      data: {
+        type: "ageRatingDeclarations",
+        id: ard_id,
+        attributes: {
+          alcoholTobaccoOrDrugUseOrReferences: "NONE",
+          contests: "NONE",
+          gambling: false,
+          gamblingSimulated: "NONE",
+          horrorOrFearThemes: "NONE",
+          matureOrSuggestiveThemes: "NONE",
+          medicalOrTreatmentInformation: "NONE",
+          profanityOrCrudeHumor: "NONE",
+          sexualContentGraphicAndNudity: "NONE",
+          sexualContentOrNudity: "NONE",
+          violenceCartoonOrFantasy: "NONE",
+          violenceRealistic: "NONE",
+          violenceRealisticProlongedGraphicOrSadistic: "NONE",
+          unrestrictedWebAccess: false,
+          kidsAgeBand: nil,
+          lootBox: false,
+          gunsOrOtherWeapons: "NONE",
+          healthOrWellnessTopics: false,
+          userGeneratedContent: false,
+          parentalControls: false,
+          advertising: false,
+          ageAssurance: false,
+          messagingAndChat: false
+        }
+      }
+    }.to_json
+
+    age_req = Net::HTTP::Patch.new("#{base_url}/ageRatingDeclarations/#{ard_id}", headers)
+    age_req.body = age_body
+    age_resp = http.request(age_req)
+    UI.message("Age rating response: #{age_resp.code}")
+    if age_resp.code.to_i < 300
+      UI.success("Age rating set to all NONE")
+    else
+      UI.error("Age rating update failed: #{age_resp.body}")
+    end
+
+    # --- Pricing (Free) ---
+    # First, find the FREE price point for GBR territory
+    pp_resp = http.request(Net::HTTP::Get.new(
+      "#{base_url}/apps/#{app.id}/appPricePoints?filter[territory]=GBR&include=territory&limit=200",
+      headers
+    ))
+    pp_data = JSON.parse(pp_resp.body)
+    # Find the free price point (customerPrice == "0.0" or "0")
+    free_point = pp_data["data"]&.find { |p|
+      cp = p.dig("attributes", "customerPrice")
+      cp == "0.0" || cp == "0" || cp == "0.00"
+    }
+
+    if free_point
+      free_point_id = free_point["id"]
+      UI.message("Free price point ID: #{free_point_id}")
+
+      price_body = {
+        data: {
+          type: "appPriceSchedules",
+          relationships: {
+            app: { data: { type: "apps", id: app.id } },
+            baseTerritory: { data: { type: "territories", id: "GBR" } },
+            manualPrices: {
+              data: [
+                { type: "appPrices", id: "${price1}" }
+              ]
+            }
+          }
+        },
+        included: [
+          {
+            type: "appPrices",
+            id: "${price1}",
+            relationships: {
+              appPricePoint: { data: { type: "appPricePoints", id: free_point_id } }
+            }
+          }
+        ]
+      }.to_json
+
+      price_req = Net::HTTP::Post.new("#{base_url}/appPriceSchedules", headers)
+      price_req.body = price_body
+      price_resp = http.request(price_req)
+      UI.message("Price schedule response: #{price_resp.code}")
+      if price_resp.code.to_i < 300
+        UI.success("Pricing set to Free")
+      else
+        parsed = JSON.parse(price_resp.body) rescue {}
+        errors = parsed["errors"]&.map { |e| e["detail"] }&.join(", ") || price_resp.body
+        UI.important("Pricing response: #{errors}")
+      end
+    else
+      UI.important("Could not find free price point. Available points:")
+      pp_data["data"]&.first(5)&.each { |p| UI.message("  #{p["id"]}: #{p.dig("attributes", "customerPrice")}") }
+    end
+
+    # --- Content Rights Declaration ---
+    cr_body = {
+      data: {
+        type: "apps",
+        id: app.id,
+        attributes: {
+          contentRightsDeclaration: "DOES_NOT_USE_THIRD_PARTY_CONTENT"
+        }
+      }
+    }.to_json
+
+    cr_req = Net::HTTP::Patch.new("#{base_url}/apps/#{app.id}", headers)
+    cr_req.body = cr_body
+    cr_resp = http.request(cr_req)
+    UI.message("Content rights response: #{cr_resp.code}")
+    if cr_resp.code.to_i < 300
+      UI.success("Content rights set to DOES_NOT_USE_THIRD_PARTY_CONTENT")
+    else
+      parsed = JSON.parse(cr_resp.body) rescue {}
+      errors = parsed["errors"]&.map { |e| e["detail"] }&.join(", ") || cr_resp.body
+      UI.important("Content rights response: #{errors}")
+    end
+  end
+
+  # ───────────────────────────────────────────
+  # App Privacy / Data Usage
+  # ───────────────────────────────────────────
+
+  desc "Set app privacy data usage declarations (requires Apple ID session auth with 2FA)"
+  lane :set_privacy do
+    upload_app_privacy_details_to_app_store(
+      username: "darryl_cauldwell@hotmail.com",
+      app_identifier: "dev.dreamfold.fuelfinder",
+      team_id: "N6BK2WX94Z",
+      json_path: "fastlane/app_privacy_details.json"
+    )
+  end
+
+  desc "Set app privacy data usage declarations (API key - deprecated endpoint)"
+  lane :set_privacy_api do
+    key = api_key
+
+    app = Spaceship::ConnectAPI::App.find("dev.dreamfold.fuelfinder")
+    UI.message("App: #{app.name}, ID: #{app.id}")
+
+    token = Spaceship::ConnectAPI.token
+    require "net/http"
+    require "json"
+    require "uri"
+
+    base_url = "https://api.appstoreconnect.apple.com/v1"
+    headers = {
+      "Authorization" => "Bearer #{token.text}",
+      "Content-Type" => "application/json"
+    }
+    uri_base = URI(base_url)
+    http = Net::HTTP.new(uri_base.host, uri_base.port)
+    http.use_ssl = true
+
+    # The Spaceship tunes client uses "dataUsages" (not "appDataUsages")
+    # Try the exact path Spaceship uses
+    UI.header("Checking data usages via Spaceship endpoint path")
+
+    endpoints_to_try = [
+      "dataUsages",
+      "dataUsagePublishState",
+      "appDataUsages",
+      "appDataUsagesPublishState"
+    ]
+
+    working_get = nil
+    endpoints_to_try.each do |ep|
+      resp = http.request(Net::HTTP::Get.new("#{base_url}/apps/#{app.id}/#{ep}", headers))
+      UI.message("  v1/apps/.../#{ep}: #{resp.code}")
+      if resp.code.to_i == 200
+        working_get = ep
+        UI.success("  Found working endpoint: #{ep}")
+        body = JSON.parse(resp.body)
+        UI.message("  Response data: #{JSON.pretty_generate(body['data'] || body)}")
+      end
+    end
+
+    if working_get.nil?
+      # Try creating directly via POST to appDataUsages
+      UI.header("Trying POST to v1/appDataUsages directly")
+      usage_body = {
+        data: {
+          type: "appDataUsages",
+          relationships: {
+            app: { data: { type: "apps", id: app.id } },
+            category: { data: { type: "appDataUsageCategories", id: "COARSE_LOCATION" } },
+            dataProtection: { data: { type: "appDataUsageDataProtections", id: "DATA_NOT_LINKED_TO_YOU" } },
+            purpose: { data: { type: "appDataUsagePurposes", id: "APP_FUNCTIONALITY" } }
+          }
+        }
+      }.to_json
+
+      create_req = Net::HTTP::Post.new("#{base_url}/appDataUsages", headers)
+      create_req.body = usage_body
+      create_resp = http.request(create_req)
+      UI.message("POST appDataUsages: #{create_resp.code}")
+      parsed = JSON.parse(create_resp.body) rescue {}
+      if create_resp.code.to_i < 300
+        UI.success("Created data usage!")
+        UI.message(JSON.pretty_generate(parsed))
+
+        # Now try to publish
+        pub_resp = http.request(Net::HTTP::Get.new("#{base_url}/apps/#{app.id}/dataUsagePublishState", headers))
+        if pub_resp.code.to_i == 200
+          pub_data = JSON.parse(pub_resp.body)["data"]
+          pub_id = pub_data["id"]
+          pub_body = { data: { type: "appDataUsagesPublishState", id: pub_id, attributes: { published: true } } }.to_json
+          pub_patch = Net::HTTP::Patch.new("#{base_url}/appDataUsagesPublishState/#{pub_id}", headers)
+          pub_patch.body = pub_body
+          pub_result = http.request(pub_patch)
+          UI.message("Publish: #{pub_result.code}")
+          UI.success("Published!") if pub_result.code.to_i < 300
+        end
+      else
+        errors = parsed["errors"]&.map { |e| "#{e['code']}: #{e['detail']}" }&.join("\n") || create_resp.body
+        UI.error("Failed:\n#{errors}")
+        UI.important("App Privacy labels must be set manually in App Store Connect.")
+        UI.important("Go to: https://appstoreconnect.apple.com/apps/6759122117/distribution/privacy")
+      end
+    end
+  end
+
+  # ───────────────────────────────────────────
+  # Submit directly via API
+  # ───────────────────────────────────────────
+
+  desc "Submit for review via direct API call"
+  lane :submit_api do
+    key = api_key
+
+    app = Spaceship::ConnectAPI::App.find("dev.dreamfold.fuelfinder")
+    UI.message("App: #{app.name}, ID: #{app.id}")
+
+    token = Spaceship::ConnectAPI.token
+    require "net/http"
+    require "json"
+    require "uri"
+
+    base_url = "https://api.appstoreconnect.apple.com/v1"
+    headers = {
+      "Authorization" => "Bearer #{token.text}",
+      "Content-Type" => "application/json"
+    }
+    uri_base = URI(base_url)
+    http = Net::HTTP.new(uri_base.host, uri_base.port)
+    http.use_ssl = true
+
+    # List available builds and attach the latest iPhone-only build to the version
+    UI.header("Checking builds")
+    builds_resp = http.request(Net::HTTP::Get.new(
+      "#{base_url}/builds?filter[app]=#{app.id}&sort=-version&limit=10",
+      headers
+    ))
+    builds_data = JSON.parse(builds_resp.body)
+
+    if builds_data["errors"]
+      UI.error("Builds API error: #{builds_data['errors'].map { |e| e['detail'] }.join(', ')}")
+    end
+
+    builds_list = builds_data["data"] || []
+    UI.message("Found #{builds_list.length} build(s)")
+    builds_list.each do |b|
+      UI.message("  Build #{b.dig('attributes','version')}: processing=#{b.dig('attributes','processingState')} id=#{b['id']}")
+    end
+
+    # Find build 5 (iPhone-only)
+    build5 = builds_list.find { |b| b.dig("attributes", "version") == "5" }
+    if build5.nil?
+      UI.important("Build 5 not found in the list. Looking for the latest VALID build instead...")
+      build5 = builds_list.find { |b| b.dig("attributes", "processingState") == "VALID" }
+    end
+
+    if build5 && build5.dig("attributes", "processingState") == "VALID"
+      build5_id = build5["id"]
+      build5_ver = build5.dig("attributes", "version")
+      UI.message("Build #{build5_ver} is VALID, ID: #{build5_id}")
+
+      # Get the version
+      ver_resp = http.request(Net::HTTP::Get.new(
+        "#{base_url}/apps/#{app.id}/appStoreVersions?filter[appStoreState]=PREPARE_FOR_SUBMISSION&limit=1",
+        headers
+      ))
+      ver_data = JSON.parse(ver_resp.body)
+      version_id = ver_data["data"].first["id"]
+
+      # Check what build is currently attached
+      current_build_resp = http.request(Net::HTTP::Get.new(
+        "#{base_url}/appStoreVersions/#{version_id}/build",
+        headers
+      ))
+      current_build = JSON.parse(current_build_resp.body)["data"]
+      if current_build
+        current_ver = current_build.dig("attributes", "version")
+        UI.message("Currently attached build: #{current_ver} (ID: #{current_build['id']})")
+      else
+        UI.message("No build currently attached")
+      end
+
+      # Attach the build to the version
+      attach_body = {
+        data: { type: "builds", id: build5_id }
+      }.to_json
+
+      attach_req = Net::HTTP::Patch.new("#{base_url}/appStoreVersions/#{version_id}/relationships/build", headers)
+      attach_req.body = attach_body
+      attach_resp = http.request(attach_req)
+      UI.message("Attach build response: #{attach_resp.code}")
+      if attach_resp.code.to_i < 300
+        UI.success("Build #{build5_ver} attached to version!")
+      else
+        parsed = JSON.parse(attach_resp.body) rescue {}
+        errors = parsed["errors"]&.map { |e| "#{e['code']}: #{e['detail']}" }&.join("\n") || attach_resp.body
+        UI.error("Failed to attach build:\n#{errors}")
+      end
+    else
+      state = build5&.dig("attributes", "processingState") || "NOT FOUND"
+      UI.important("No VALID build found (state: #{state}). It may still be processing.")
+      UI.important("Wait a few minutes and try again.")
+      next
+    end
+
+    # Set export compliance (usesNonExemptEncryption = false) on the build
+    UI.header("Setting export compliance")
+    encryption_body = {
+      data: {
+        type: "builds",
+        id: build5_id,
+        attributes: {
+          usesNonExemptEncryption: false
+        }
+      }
+    }.to_json
+
+    enc_req = Net::HTTP::Patch.new("#{base_url}/builds/#{build5_id}", headers)
+    enc_req.body = encryption_body
+    enc_resp = http.request(enc_req)
+    UI.message("Export compliance response: #{enc_resp.code}")
+    if enc_resp.code.to_i < 300
+      UI.success("Export compliance set: usesNonExemptEncryption = false")
+    else
+      parsed = JSON.parse(enc_resp.body) rescue {}
+      errors = parsed["errors"]&.map { |e| "#{e['code']}: #{e['detail']}" }&.join("\n") || enc_resp.body
+      UI.error("Failed to set export compliance:\n#{errors}")
+    end
+
+    # Check for existing review submissions
+    UI.header("Checking existing review submissions")
+    all_subs_resp = http.request(Net::HTTP::Get.new(
+      "#{base_url}/apps/#{app.id}/reviewSubmissions?filter[state]=READY_FOR_REVIEW,WAITING_FOR_REVIEW,IN_REVIEW,UNRESOLVED_ISSUES",
+      headers
+    ))
+    all_subs = JSON.parse(all_subs_resp.body)["data"] || []
+    UI.message("Active review submissions: #{all_subs.length}")
+    all_subs.each do |sub|
+      state = sub.dig("attributes", "state")
+      sub_id = sub["id"]
+      UI.message("  #{sub_id}: #{state}")
+    end
+
+    # If there's an existing READY_FOR_REVIEW submission, try to use it directly
+    ready_sub = all_subs.find { |s| s.dig("attributes", "state") == "READY_FOR_REVIEW" }
+    reuse_submission = nil
+
+    if ready_sub
+      # Reuse this existing submission — we'll add an item if needed
+      reuse_submission = ready_sub
+      UI.message("Will reuse existing READY_FOR_REVIEW submission: #{ready_sub['id']}")
+
+      # Check if it already has items
+      items_resp = http.request(Net::HTTP::Get.new(
+        "#{base_url}/reviewSubmissions/#{ready_sub['id']}/items",
+        headers
+      ))
+      items_data = JSON.parse(items_resp.body)["data"] || []
+      UI.message("  Items in submission: #{items_data.length}")
+      items_data.each do |item|
+        UI.message("    Item #{item['id']}: state=#{item.dig('attributes', 'state')}")
+      end
+    end
+
+    # Get the edit version
+    ver_resp = http.request(Net::HTTP::Get.new(
+      "#{base_url}/apps/#{app.id}/appStoreVersions?filter[appStoreState]=PREPARE_FOR_SUBMISSION&limit=1",
+      headers
+    ))
+    ver_data = JSON.parse(ver_resp.body)
+    version = ver_data["data"]&.first
+    version_id = version["id"]
+    UI.message("Version ID: #{version_id}, state: #{version.dig('attributes', 'appStoreState')}")
+
+    # Check if the version has any issues by looking at its localizations' screenshot counts
+    # and looking at the appStoreVersionExperiments etc
+    UI.header("Checking version readiness")
+
+    # Check the primary locale setting
+    app_resp = http.request(Net::HTTP::Get.new("#{base_url}/apps/#{app.id}", headers))
+    app_data = JSON.parse(app_resp.body)["data"]
+    primary_locale = app_data.dig("attributes", "primaryLocale")
+    UI.message("Primary locale: #{primary_locale}")
+
+    # Step 1: Create or reuse a review submission
+    submission_id = nil
+
+    if reuse_submission
+      submission_id = reuse_submission["id"]
+      UI.success("Reusing existing review submission: #{submission_id}")
+
+      # Check if it needs an item added
+      items_resp2 = http.request(Net::HTTP::Get.new(
+        "#{base_url}/reviewSubmissions/#{submission_id}/items",
+        headers
+      ))
+      existing_items = JSON.parse(items_resp2.body)["data"] || []
+      if existing_items.empty?
+        UI.message("Adding app store version as review item...")
+        item_body = {
+          data: {
+            type: "reviewSubmissionItems",
+            relationships: {
+              reviewSubmission: { data: { type: "reviewSubmissions", id: submission_id } },
+              appStoreVersion: { data: { type: "appStoreVersions", id: version_id } }
+            }
+          }
+        }.to_json
+
+        item_req = Net::HTTP::Post.new("#{base_url}/reviewSubmissionItems", headers)
+        item_req.body = item_body
+        item_resp = http.request(item_req)
+        UI.message("Review submission item response: #{item_resp.code}")
+
+        if item_resp.code.to_i >= 300
+          parsed = JSON.parse(item_resp.body) rescue {}
+          errors = parsed["errors"] || []
+          errors.each do |e|
+            UI.error("  #{e['code']}: #{e['detail']}")
+            meta = e["meta"]
+            if meta && meta["associatedErrors"]
+              meta["associatedErrors"].each do |path, errs|
+                errs.each { |ae| UI.error("  -> #{ae['code']}: #{ae['detail']}") }
+              end
+            end
+          end
+          next
+        end
+        UI.success("Review item added to existing submission")
+      else
+        UI.message("Submission already has #{existing_items.length} item(s)")
+      end
+    else
+      UI.header("Creating review submission")
+      submission_body = {
+        data: {
+          type: "reviewSubmissions",
+          relationships: {
+            app: { data: { type: "apps", id: app.id } }
+          }
+        }
+      }.to_json
+
+      sub_req = Net::HTTP::Post.new("#{base_url}/reviewSubmissions", headers)
+      sub_req.body = submission_body
+      sub_resp = http.request(sub_req)
+      UI.message("Review submission response: #{sub_resp.code}")
+
+      if sub_resp.code.to_i >= 300
+        parsed = JSON.parse(sub_resp.body) rescue {}
+        errors = parsed["errors"] || []
+        errors.each do |e|
+          UI.error("#{e['code']}: #{e['detail']}")
+          meta = e["meta"]
+          if meta && meta["associatedErrors"]
+            meta["associatedErrors"].each do |path, errs|
+              errs.each { |ae| UI.error("  -> #{ae['code']}: #{ae['detail']}") }
+            end
+          end
+        end
+        next
+      end
+
+      submission_data = JSON.parse(sub_resp.body)["data"]
+      submission_id = submission_data["id"]
+      UI.success("Review submission created: #{submission_id}")
+
+      # Step 2: Add the app store version as a review item
+      item_body = {
+        data: {
+          type: "reviewSubmissionItems",
+          relationships: {
+            reviewSubmission: { data: { type: "reviewSubmissions", id: submission_id } },
+            appStoreVersion: { data: { type: "appStoreVersions", id: version_id } }
+          }
+        }
+      }.to_json
+
+      item_req = Net::HTTP::Post.new("#{base_url}/reviewSubmissionItems", headers)
+      item_req.body = item_body
+      item_resp = http.request(item_req)
+      UI.message("Review submission item response: #{item_resp.code}")
+
+      if item_resp.code.to_i >= 300
+        parsed = JSON.parse(item_resp.body) rescue {}
+        errors = parsed["errors"] || []
+        errors.each do |e|
+          UI.error("  #{e['code']}: #{e['detail']}")
+          meta = e["meta"]
+          if meta && meta["associatedErrors"]
+            meta["associatedErrors"].each do |path, errs|
+              errs.each { |ae| UI.error("  -> #{ae['code']}: #{ae['detail']}") }
+            end
+          end
+        end
+
+        # Cleanup: delete the submission
+        del_req = Net::HTTP::Delete.new("#{base_url}/reviewSubmissions/#{submission_id}", headers)
+        http.request(del_req)
+        next
+      end
+
+      UI.success("Review item added")
+    end
+
+    # Step 3: Confirm the submission (submit for review)
+    UI.header("Confirming submission")
+    confirm_body = {
+      data: {
+        type: "reviewSubmissions",
+        id: submission_id,
+        attributes: {
+          submitted: true
+        }
+      }
+    }.to_json
+
+    confirm_req = Net::HTTP::Patch.new("#{base_url}/reviewSubmissions/#{submission_id}", headers)
+    confirm_req.body = confirm_body
+    confirm_resp = http.request(confirm_req)
+    UI.message("Confirm submission response: #{confirm_resp.code}")
+
+    if confirm_resp.code.to_i < 300
+      UI.success("App submitted for review! 🎉")
+    else
+      parsed = JSON.parse(confirm_resp.body) rescue {}
+      errors = parsed["errors"] || []
+      errors.each do |e|
+        UI.error("#{e['code']}: #{e['detail']}")
+        meta = e["meta"]
+        if meta && meta["associatedErrors"]
+          meta["associatedErrors"].each do |path, errs|
+            errs.each { |ae| UI.error("  -> #{ae['code']}: #{ae['detail']}") }
+          end
+        end
+      end
+    end
+  end
+
+  # ───────────────────────────────────────────
+  # Diagnose: Check what's blocking submission
+  # ───────────────────────────────────────────
+
+  desc "Check what is blocking App Store submission"
+  lane :diagnose do
+    key = api_key
+
+    app = Spaceship::ConnectAPI::App.find("dev.dreamfold.fuelfinder")
+    UI.message("App: #{app.name} (#{app.bundle_id}), Apple ID: #{app.id}")
+
+    token = Spaceship::ConnectAPI.token
+    require "net/http"
+    require "json"
+    require "uri"
+
+    base_url = "https://api.appstoreconnect.apple.com/v1"
+    headers = {
+      "Authorization" => "Bearer #{token.text}",
+      "Content-Type"  => "application/json"
+    }
+    uri_base = URI(base_url)
+    http = Net::HTTP.new(uri_base.host, uri_base.port)
+    http.use_ssl = true
+
+    blockers = []
+
+    # ──────────────────────────────────────────────
+    # 1. App Store Version state
+    # ──────────────────────────────────────────────
+    UI.header("1. App Store Version State")
+    ver_resp = http.request(Net::HTTP::Get.new(
+      "#{base_url}/apps/#{app.id}/appStoreVersions?filter[appStoreState]=PREPARE_FOR_SUBMISSION&include=appStoreVersionLocalizations,build,appStoreReviewDetail,appStoreVersionSubmission&limit=1",
+      headers
+    ))
+    ver_data = JSON.parse(ver_resp.body)
+    version = ver_data["data"]&.first
+    if version.nil?
+      UI.error("No version in PREPARE_FOR_SUBMISSION found!")
+      # Try without filter
+      ver_resp2 = http.request(Net::HTTP::Get.new(
+        "#{base_url}/apps/#{app.id}/appStoreVersions?limit=5",
+        headers
+      ))
+      ver_data2 = JSON.parse(ver_resp2.body)
+      ver_data2["data"]&.each do |v|
+        UI.message("  Version #{v.dig('attributes','versionString')}: #{v.dig('attributes','appStoreState')}")
+      end
+      UI.user_error!("Cannot continue without a PREPARE_FOR_SUBMISSION version")
+    end
+
+    version_id = version["id"]
+    version_string = version.dig("attributes", "versionString")
+    version_state = version.dig("attributes", "appStoreState")
+    UI.message("Version: #{version_string}, State: #{version_state}, ID: #{version_id}")
+
+    included = ver_data["included"] || []
+
+    # ──────────────────────────────────────────────
+    # 2. Check localizations exist
+    # ──────────────────────────────────────────────
+    UI.header("2. Localizations")
+    localizations = included.select { |i| i["type"] == "appStoreVersionLocalizations" }
+    if localizations.empty?
+      loc_resp = http.request(Net::HTTP::Get.new(
+        "#{base_url}/appStoreVersions/#{version_id}/appStoreVersionLocalizations",
+        headers
+      ))
+      localizations = JSON.parse(loc_resp.body)["data"] || []
+    end
+
+    localizations.each do |loc|
+      locale = loc.dig("attributes", "locale")
+      desc_text = loc.dig("attributes", "description")
+      keywords = loc.dig("attributes", "keywords")
+      whats_new = loc.dig("attributes", "whatsNew")
+      support_url = loc.dig("attributes", "supportUrl")
+      marketing_url = loc.dig("attributes", "marketingUrl")
+      promo_text = loc.dig("attributes", "promotionalText")
+
+      UI.message("  Locale: #{locale}")
+      UI.message("    description: #{desc_text.nil? || desc_text.empty? ? 'MISSING' : "#{desc_text.length} chars"}")
+      UI.message("    keywords: #{keywords.nil? || keywords.empty? ? 'MISSING' : keywords}")
+      UI.message("    supportUrl: #{support_url.nil? || support_url.empty? ? 'MISSING' : support_url}")
+      UI.message("    marketingUrl: #{marketing_url.nil? || marketing_url.empty? ? '(empty - optional)' : marketing_url}")
+      UI.message("    promotionalText: #{promo_text.nil? || promo_text.empty? ? '(empty - optional)' : "#{promo_text.length} chars"}")
+      UI.message("    whatsNew: #{whats_new.nil? || whats_new.empty? ? '(empty - only needed for updates)' : "#{whats_new.length} chars"}")
+
+      if desc_text.nil? || desc_text.empty?
+        blockers << "#{locale}: description is MISSING"
+      end
+      if support_url.nil? || support_url.empty?
+        blockers << "#{locale}: supportUrl is MISSING"
+      end
+    end
+
+    if localizations.empty?
+      blockers << "No localizations found at all!"
+    end
+
+    # ──────────────────────────────────────────────
+    # 3. Screenshots status per locale
+    # ──────────────────────────────────────────────
+    UI.header("3. Screenshots")
+    localizations.each do |loc|
+      loc_id = loc["id"]
+      locale = loc.dig("attributes", "locale")
+
+      # Get screenshot sets
+      ss_resp = http.request(Net::HTTP::Get.new(
+        "#{base_url}/appStoreVersionLocalizations/#{loc_id}/appScreenshotSets?include=appScreenshots",
+        headers
+      ))
+      ss_data = JSON.parse(ss_resp.body)
+      sets = ss_data["data"] || []
+      all_screenshots = ss_data["included"] || []
+
+      UI.message("  #{locale}: #{sets.length} screenshot set(s)")
+
+      sets.each do |sset|
+        display_type = sset.dig("attributes", "screenshotDisplayType")
+        set_id = sset["id"]
+
+        # Find screenshots belonging to this set
+        set_screenshot_ids = sset.dig("relationships", "appScreenshots", "data")&.map { |s| s["id"] } || []
+        set_screenshots = all_screenshots.select { |s| set_screenshot_ids.include?(s["id"]) }
+
+        if set_screenshots.empty?
+          # Fetch directly
+          sc_resp = http.request(Net::HTTP::Get.new(
+            "#{base_url}/appScreenshotSets/#{set_id}/appScreenshots",
+            headers
+          ))
+          set_screenshots = JSON.parse(sc_resp.body)["data"] || []
+        end
+
+        states = set_screenshots.map { |s| s.dig("attributes", "assetDeliveryState", "state") || s.dig("attributes", "uploadOperations") ? "UPLOADING?" : "UNKNOWN" }
+        complete_count = set_screenshots.count { |s| s.dig("attributes", "assetDeliveryState", "state") == "COMPLETE" }
+        errors_list = set_screenshots.select { |s| s.dig("attributes", "assetDeliveryState", "errors")&.any? }
+
+        UI.message("    #{display_type}: #{set_screenshots.length} screenshot(s), #{complete_count} COMPLETE")
+
+        set_screenshots.each do |sc|
+          state = sc.dig("attributes", "assetDeliveryState", "state") || "nil"
+          fname = sc.dig("attributes", "fileName") || "unknown"
+          errs = sc.dig("attributes", "assetDeliveryState", "errors") || []
+          if state != "COMPLETE"
+            UI.important("      #{fname}: #{state}")
+            blockers << "#{locale}/#{display_type}: screenshot '#{fname}' is in state #{state}"
+          end
+          errs.each do |e|
+            UI.error("      ERROR: #{e}")
+            blockers << "#{locale}/#{display_type}: screenshot error: #{e}"
+          end
+        end
+
+        if set_screenshots.length == 0
+          blockers << "#{locale}/#{display_type}: screenshot set is EMPTY"
+        end
+      end
+
+      if sets.empty?
+        blockers << "#{locale}: NO screenshot sets found"
+      end
+    end
+
+    # ──────────────────────────────────────────────
+    # 4. Build attached?
+    # ──────────────────────────────────────────────
+    UI.header("4. Build")
+    build_data = included.select { |i| i["type"] == "builds" }
+    if build_data.empty?
+      # Fetch build relationship directly
+      build_rel_resp = http.request(Net::HTTP::Get.new(
+        "#{base_url}/appStoreVersions/#{version_id}/build",
+        headers
+      ))
+      build_rel = JSON.parse(build_rel_resp.body)
+      build_obj = build_rel["data"]
+      if build_obj.nil?
+        UI.error("NO BUILD ATTACHED to this version!")
+        blockers << "No build attached to the app store version"
+      else
+        build_version = build_obj.dig("attributes", "version")
+        build_state = build_obj.dig("attributes", "processingState")
+        UI.message("Build: #{build_version}, processing: #{build_state}")
+        if build_state != "VALID"
+          blockers << "Build processing state is '#{build_state}' (expected VALID)"
+        end
+      end
+    else
+      build_data.each do |b|
+        bv = b.dig("attributes", "version")
+        bs = b.dig("attributes", "processingState")
+        UI.message("Build: #{bv}, processing: #{bs}")
+        if bs != "VALID"
+          blockers << "Build processing state is '#{bs}' (expected VALID)"
+        end
+      end
+    end
+
+    # ──────────────────────────────────────────────
+    # 5. App Store Review Detail (contact info, demo account, etc.)
+    # ──────────────────────────────────────────────
+    UI.header("5. App Store Review Detail")
+    review_detail = included.select { |i| i["type"] == "appStoreReviewDetails" }.first
+    if review_detail.nil?
+      rd_resp = http.request(Net::HTTP::Get.new(
+        "#{base_url}/appStoreVersions/#{version_id}/appStoreReviewDetail",
+        headers
+      ))
+      rd_data = JSON.parse(rd_resp.body)
+      review_detail = rd_data["data"]
+    end
+
+    if review_detail.nil?
+      UI.error("No App Store Review Detail found!")
+      blockers << "App Store Review Detail is missing (contact info for reviewers)"
+    else
+      contact_first = review_detail.dig("attributes", "contactFirstName")
+      contact_last = review_detail.dig("attributes", "contactLastName")
+      contact_phone = review_detail.dig("attributes", "contactPhone")
+      contact_email = review_detail.dig("attributes", "contactEmail")
+      notes = review_detail.dig("attributes", "notes")
+
+      UI.message("  Contact: #{contact_first} #{contact_last}")
+      UI.message("  Phone: #{contact_phone}")
+      UI.message("  Email: #{contact_email}")
+      UI.message("  Notes: #{notes.nil? || notes.empty? ? '(none)' : notes}")
+
+      if contact_first.nil? || contact_first.empty?
+        blockers << "Review contact first name is missing"
+      end
+      if contact_last.nil? || contact_last.empty?
+        blockers << "Review contact last name is missing"
+      end
+      if contact_phone.nil? || contact_phone.empty?
+        blockers << "Review contact phone is missing"
+      end
+      if contact_email.nil? || contact_email.empty?
+        blockers << "Review contact email is missing"
+      end
+    end
+
+    # ──────────────────────────────────────────────
+    # 6. Content rights declaration
+    # ──────────────────────────────────────────────
+    UI.header("6. Content Rights / App Info")
+    info_resp = http.request(Net::HTTP::Get.new(
+      "#{base_url}/apps/#{app.id}/appInfos",
+      headers
+    ))
+    app_infos = JSON.parse(info_resp.body)
+    app_info = app_infos["data"]&.first
+    if app_info
+      app_info_id = app_info["id"]
+      app_info_state = app_info.dig("attributes", "appStoreState")
+      UI.message("AppInfo ID: #{app_info_id}, state: #{app_info_state}")
+
+      # Check content rights
+      # The contentRightsDeclaration is an attribute on the appInfo
+      # but we need a separate AppInfos detail call
+      info_detail_resp = http.request(Net::HTTP::Get.new(
+        "#{base_url}/appInfos/#{app_info_id}",
+        headers
+      ))
+      info_detail = JSON.parse(info_detail_resp.body)["data"]
+      attrs = info_detail["attributes"] || {}
+
+      # Check primary category
+      cat_resp = http.request(Net::HTTP::Get.new(
+        "#{base_url}/appInfos/#{app_info_id}?include=primaryCategory,secondaryCategory",
+        headers
+      ))
+      cat_data = JSON.parse(cat_resp.body)
+      cat_included = cat_data["included"] || []
+
+      primary_cat_rel = cat_data.dig("data", "relationships", "primaryCategory", "data")
+      secondary_cat_rel = cat_data.dig("data", "relationships", "secondaryCategory", "data")
+
+      if primary_cat_rel
+        primary_cat = cat_included.find { |i| i["id"] == primary_cat_rel["id"] }
+        UI.message("  Primary category: #{primary_cat_rel['id']}")
+      else
+        UI.error("  Primary category: NOT SET")
+        blockers << "Primary category is not set"
+      end
+
+      if secondary_cat_rel
+        UI.message("  Secondary category: #{secondary_cat_rel['id']}")
+      else
+        UI.message("  Secondary category: (none - optional)")
+      end
+
+      # Check appInfoLocalizations for subtitle etc
+      ail_resp = http.request(Net::HTTP::Get.new(
+        "#{base_url}/appInfos/#{app_info_id}/appInfoLocalizations",
+        headers
+      ))
+      ail_data = JSON.parse(ail_resp.body)["data"] || []
+      ail_data.each do |ail|
+        locale = ail.dig("attributes", "locale")
+        name = ail.dig("attributes", "name")
+        subtitle = ail.dig("attributes", "subtitle")
+        privacy_url = ail.dig("attributes", "privacyPolicyUrl")
+
+        UI.message("  AppInfoLocalization [#{locale}]:")
+        UI.message("    name: #{name || 'MISSING'}")
+        UI.message("    subtitle: #{subtitle.nil? || subtitle.empty? ? '(empty - optional)' : subtitle}")
+        UI.message("    privacyPolicyUrl: #{privacy_url.nil? || privacy_url.empty? ? 'MISSING' : privacy_url}")
+
+        if privacy_url.nil? || privacy_url.empty?
+          blockers << "#{locale}: privacyPolicyUrl is MISSING (required for App Store)"
+        end
+      end
+    end
+
+    # ──────────────────────────────────────────────
+    # 7. Check if version has any app clips, iMessage, etc. that need config
+    # ──────────────────────────────────────────────
+    UI.header("7. Version Attributes")
+    ver_attrs = version["attributes"] || {}
+    UI.message("  versionString: #{ver_attrs['versionString']}")
+    UI.message("  appStoreState: #{ver_attrs['appStoreState']}")
+    UI.message("  releaseType: #{ver_attrs['releaseType'] || '(not set)'}")
+    UI.message("  createdDate: #{ver_attrs['createdDate']}")
+
+    # ──────────────────────────────────────────────
+    # 8. App Store Version Phased Release
+    # ──────────────────────────────────────────────
+
+    # ──────────────────────────────────────────────
+    # 9. Check content rights declaration on the App level
+    # ──────────────────────────────────────────────
+    UI.header("8. Content Rights Declaration (App level)")
+    app_detail_resp = http.request(Net::HTTP::Get.new(
+      "#{base_url}/apps/#{app.id}",
+      headers
+    ))
+    app_detail = JSON.parse(app_detail_resp.body)["data"]
+    content_rights = app_detail.dig("attributes", "contentRightsDeclaration")
+    UI.message("  contentRightsDeclaration: #{content_rights || 'NOT SET'}")
+    if content_rights.nil? || content_rights == ""
+      blockers << "Content rights declaration is not set (must be DOES_NOT_USE_THIRD_PARTY_CONTENT or USES_THIRD_PARTY_CONTENT)"
+    end
+
+    # ──────────────────────────────────────────────
+    # Summary
+    # ──────────────────────────────────────────────
+    UI.header("DIAGNOSIS SUMMARY")
+    if blockers.empty?
+      UI.success("No obvious blockers found! The issue may be a timing/propagation problem.")
+      UI.message("Try waiting a few minutes then re-running fastlane submit.")
+    else
+      UI.error("Found #{blockers.length} potential blocker(s):")
+      blockers.each_with_index do |b, i|
+        UI.error("  #{i + 1}. #{b}")
+      end
+    end
   end
 
 end

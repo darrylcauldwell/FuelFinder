@@ -22,7 +22,7 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
     /// Uses the shared FuelDataManager from the app.
     /// In a production app this would be injected via a shared container.
     private func makeSharedDataManager() -> FuelDataManager {
-        FuelDataManager(coreDataStack: .shared)
+        FuelDataManager.shared ?? FuelDataManager(coreDataStack: .shared)
     }
 
     // MARK: - Scene Lifecycle
@@ -44,14 +44,8 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
         let rootTemplate = manager.buildRootTemplate()
         interfaceController.setRootTemplate(rootTemplate, animated: true, completion: nil)
 
-        // Set map template delegate
-        if let mapTemplate = manager.mapTemplate {
-            mapTemplate.mapDelegate = self
-        }
-
         // Start fetching nearby data
         refreshTask = Task { @MainActor in
-            // Default to London; in production use CLLocationManager
             let location = LocationService.defaultUK
             await dataManager.refreshStations(near: location)
             await dataManager.findNearbyStations(coordinate: location)
@@ -78,32 +72,5 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
         self.interfaceController = nil
         self.carPlayWindow = nil
         self.carPlayManager = nil
-    }
-}
-
-// MARK: - CPMapTemplateDelegate
-
-extension CarPlaySceneDelegate: CPMapTemplateDelegate {
-
-    func mapTemplate(_ mapTemplate: CPMapTemplate, panBeganWith direction: CPMapTemplate.PanDirection) {
-        // Handle map panning — update visible region
-    }
-
-    func mapTemplate(_ mapTemplate: CPMapTemplate, panEndedWith direction: CPMapTemplate.PanDirection) {
-        // Refresh nearby stations based on new visible region
-    }
-
-    func mapTemplate(_ mapTemplate: CPMapTemplate, selectedPreviewFor trip: CPTrip, using routeChoice: CPRouteChoice) {
-        mapTemplate.showRouteChoicesPreview(for: trip, textConfiguration: nil)
-    }
-
-    func mapTemplate(_ mapTemplate: CPMapTemplate, startedTrip trip: CPTrip, using routeChoice: CPRouteChoice) {
-        // Begin navigation session
-        let session = mapTemplate.startNavigationSession(for: trip)
-        session.pauseTrip(for: .loading, description: "Starting navigation...")
-    }
-
-    func mapTemplateDidCancelNavigation(_ mapTemplate: CPMapTemplate) {
-        mapTemplate.dismissNavigationAlert(animated: true) { _ in }
     }
 }

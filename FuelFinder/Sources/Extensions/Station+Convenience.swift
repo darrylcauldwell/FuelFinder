@@ -68,6 +68,21 @@ extension Station {
     }
 }
 
+// MARK: - Station Sort Order
+
+enum StationSortOrder: String, CaseIterable, Identifiable, Sendable {
+    case price, distance
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .price: return "Cheapest"
+        case .distance: return "Nearest"
+        }
+    }
+}
+
 // MARK: - Fuel Type Enum
 
 enum FuelType: String, CaseIterable, Identifiable, Sendable {

@@ -158,5 +158,325 @@
             "premium_diesel": 1.63
         },
         "updated": "2026-02-12T08:00:00Z"
+    },
+    {
+        "id": "station011",
+        "name": "Shell Matlock",
+        "brand": "Shell",
+        "lat": 53.1390,
+        "lon": -1.5580,
+        "address": "Dale Road, Matlock DE4 3LT",
+        "amenities": ["shop", "toilets", "air"],
+        "prices": {
+            "unleaded": 1.46,
+            "super_unleaded": 1.59,
+            "diesel": 1.53,
+            "premium_diesel": 1.63
+        },
+        "updated": "2026-02-12T08:00:00Z"
+    },
+    {
+        "id": "station012",
+        "name": "Morrisons Chesterfield",
+        "brand": "Morrisons",
+        "lat": 53.2350,
+        "lon": -1.4210,
+        "address": "Lockoford Lane, Chesterfield S41 7JB",
+        "amenities": ["air", "shop", "pay_at_pump", "car_wash"],
+        "prices": {
+            "unleaded": 1.40,
+            "super_unleaded": 1.53,
+            "diesel": 1.47,
+            "premium_diesel": 1.57
+        },
+        "updated": "2026-02-12T08:30:00Z"
+    },
+    {
+        "id": "station013",
+        "name": "BP Tibshelf Services",
+        "brand": "BP",
+        "lat": 53.1530,
+        "lon": -1.3670,
+        "address": "Tibshelf Services, M1 Junction 28, DE55 5TZ",
+        "amenities": ["shop", "toilets", "ev_charging", "car_wash"],
+        "prices": {
+            "unleaded": 1.52,
+            "super_unleaded": 1.65,
+            "diesel": 1.59,
+            "premium_diesel": 1.69
+        },
+        "updated": "2026-02-12T07:00:00Z"
+    },
+    {
+        "id": "station014",
+        "name": "Asda Eastwood",
+        "brand": "Asda",
+        "lat": 53.0170,
+        "lon": -1.3080,
+        "address": "Nottingham Road, Eastwood NG16 3AA",
+        "amenities": ["air", "shop", "pay_at_pump"],
+        "prices": {
+            "unleaded": 1.39,
+            "super_unleaded": 1.52,
+            "diesel": 1.46,
+            "premium_diesel": 1.56
+        },
+        "updated": "2026-02-12T09:00:00Z"
+    },
+    {
+        "id": "station015",
+        "name": "Shell Trowell Services",
+        "brand": "Shell",
+        "lat": 52.9560,
+        "lon": -1.2580,
+        "address": "Trowell Services, M1 Junction 25-26, NG9 3PL",
+        "amenities": ["shop", "toilets", "ev_charging"],
+        "prices": {
+            "unleaded": 1.51,
+            "super_unleaded": 1.64,
+            "diesel": 1.58,
+            "premium_diesel": 1.68
+        },
+        "updated": "2026-02-12T07:30:00Z"
+    },
+    {
+        "id": "station016",
+        "name": "Tesco Loughborough",
+        "brand": "Tesco",
+        "lat": 52.7710,
+        "lon": -1.2060,
+        "address": "Park Road, Loughborough LE11 2HH",
+        "amenities": ["air", "shop", "pay_at_pump"],
+        "prices": {
+            "unleaded": 1.42,
+            "super_unleaded": 1.55,
+            "diesel": 1.49,
+            "premium_diesel": 1.59
+        },
+        "updated": "2026-02-12T08:00:00Z"
+    },
+    {
+        "id": "station017",
+        "name": "BP Donington Park Services",
+        "brand": "BP",
+        "lat": 52.8310,
+        "lon": -1.3340,
+        "address": "Donington Park Services, M1 Junction 23A-24, DE74 2TN",
+        "amenities": ["shop", "toilets", "car_wash"],
+        "prices": {
+            "unleaded": 1.53,
+            "super_unleaded": 1.66,
+            "diesel": 1.60,
+            "premium_diesel": 1.70
+        },
+        "updated": "2026-02-12T06:30:00Z"
+    },
+    {
+        "id": "station018",
+        "name": "Morrisons Leicester",
+        "brand": "Morrisons",
+        "lat": 52.6490,
+        "lon": -1.1320,
+        "address": "Aylestone Road, Leicester LE2 7QP",
+        "amenities": ["air", "shop", "pay_at_pump", "car_wash"],
+        "prices": {
+            "unleaded": 1.41,
+            "super_unleaded": 1.54,
+            "diesel": 1.48,
+            "premium_diesel": 1.58
+        },
+        "updated": "2026-02-12T08:45:00Z"
+    },
+    {
+        "id": "station019",
+        "name": "Shell Leicester Forest East",
+        "brand": "Shell",
+        "lat": 52.6180,
+        "lon": -1.2050,
+        "address": "Leicester Forest East Services, M1 Junction 21-21A, LE3 3GB",
+        "amenities": ["shop", "toilets", "ev_charging"],
+        "prices": {
+            "unleaded": 1.50,
+            "super_unleaded": 1.63,
+            "diesel": 1.57,
+            "premium_diesel": 1.67
+        },
+        "updated": "2026-02-12T07:15:00Z"
+    },
+    {
+        "id": "station020",
+        "name": "Esso Northampton",
+        "brand": "Esso",
+        "lat": 52.2470,
+        "lon": -0.8870,
+        "address": "Harborough Road, Northampton NN2 8LT",
+        "amenities": ["shop", "air", "toilets"],
+        "prices": {
+            "unleaded": 1.47,
+            "super_unleaded": 1.60,
+            "diesel": 1.54,
+            "premium_diesel": 1.64
+        },
+        "updated": "2026-02-12T08:00:00Z"
+    },
+    {
+        "id": "station021",
+        "name": "Asda Northampton",
+        "brand": "Asda",
+        "lat": 52.2350,
+        "lon": -0.9120,
+        "address": "Weedon Road, Northampton NN5 5BG",
+        "amenities": ["air", "shop", "pay_at_pump"],
+        "prices": {
+            "unleaded": 1.39,
+            "super_unleaded": 1.52,
+            "diesel": 1.46,
+            "premium_diesel": 1.56
+        },
+        "updated": "2026-02-12T09:15:00Z"
+    },
+    {
+        "id": "station022",
+        "name": "BP Newport Pagnell Services",
+        "brand": "BP",
+        "lat": 52.0880,
+        "lon": -0.7220,
+        "address": "Newport Pagnell Services, M1 Junction 14-15, MK16 8DS",
+        "amenities": ["shop", "toilets", "ev_charging", "car_wash"],
+        "prices": {
+            "unleaded": 1.54,
+            "super_unleaded": 1.67,
+            "diesel": 1.61,
+            "premium_diesel": 1.71
+        },
+        "updated": "2026-02-12T07:00:00Z"
+    },
+    {
+        "id": "station023",
+        "name": "Tesco Milton Keynes",
+        "brand": "Tesco",
+        "lat": 52.0400,
+        "lon": -0.7580,
+        "address": "Bletcham Way, Milton Keynes MK1 1QB",
+        "amenities": ["air", "shop", "pay_at_pump"],
+        "prices": {
+            "unleaded": 1.43,
+            "super_unleaded": 1.56,
+            "diesel": 1.50,
+            "premium_diesel": 1.60
+        },
+        "updated": "2026-02-12T08:30:00Z"
+    },
+    {
+        "id": "station024",
+        "name": "Shell Toddington Services",
+        "brand": "Shell",
+        "lat": 51.8720,
+        "lon": -0.4960,
+        "address": "Toddington Services, M1 Junction 11-12, LU5 6HR",
+        "amenities": ["shop", "toilets", "ev_charging"],
+        "prices": {
+            "unleaded": 1.51,
+            "super_unleaded": 1.64,
+            "diesel": 1.58,
+            "premium_diesel": 1.68
+        },
+        "updated": "2026-02-12T07:45:00Z"
+    },
+    {
+        "id": "station025",
+        "name": "Sainsbury's Luton",
+        "brand": "Sainsburys",
+        "lat": 51.8790,
+        "lon": -0.4140,
+        "address": "Chaul End Lane, Luton LU4 8EZ",
+        "amenities": ["air", "shop", "pay_at_pump"],
+        "prices": {
+            "unleaded": 1.43,
+            "super_unleaded": 1.56,
+            "diesel": 1.50,
+            "premium_diesel": 1.60
+        },
+        "updated": "2026-02-12T08:15:00Z"
+    },
+    {
+        "id": "station026",
+        "name": "Texaco Luton",
+        "brand": "Texaco",
+        "lat": 51.8830,
+        "lon": -0.4280,
+        "address": "Dunstable Road, Luton LU4 8BY",
+        "amenities": ["shop", "air"],
+        "prices": {
+            "unleaded": 1.48,
+            "super_unleaded": 1.61,
+            "diesel": 1.55,
+            "premium_diesel": 1.65
+        },
+        "updated": "2026-02-12T07:30:00Z"
+    },
+    {
+        "id": "station027",
+        "name": "BP London Gateway Services",
+        "brand": "BP",
+        "lat": 51.7360,
+        "lon": -0.3680,
+        "address": "London Gateway Services, M1 Junction 2-4, NW7 3HU",
+        "amenities": ["shop", "toilets", "ev_charging", "car_wash"],
+        "prices": {
+            "unleaded": 1.53,
+            "super_unleaded": 1.66,
+            "diesel": 1.60,
+            "premium_diesel": 1.70
+        },
+        "updated": "2026-02-12T06:45:00Z"
+    },
+    {
+        "id": "station028",
+        "name": "Morrisons St Albans",
+        "brand": "Morrisons",
+        "lat": 51.7530,
+        "lon": -0.3290,
+        "address": "Hatfield Road, St Albans AL1 4JL",
+        "amenities": ["air", "shop", "pay_at_pump", "car_wash"],
+        "prices": {
+            "unleaded": 1.41,
+            "super_unleaded": 1.54,
+            "diesel": 1.48,
+            "premium_diesel": 1.58
+        },
+        "updated": "2026-02-12T08:00:00Z"
+    },
+    {
+        "id": "station029",
+        "name": "Jet Watford Gap Services",
+        "brand": "Jet",
+        "lat": 52.3260,
+        "lon": -1.0350,
+        "address": "Watford Gap Services, M1 Junction 16-17, NN6 7UZ",
+        "amenities": ["shop", "toilets"],
+        "prices": {
+            "unleaded": 1.49,
+            "super_unleaded": 1.62,
+            "diesel": 1.56,
+            "premium_diesel": 1.66
+        },
+        "updated": "2026-02-12T07:00:00Z"
+    },
+    {
+        "id": "station030",
+        "name": "Gulf Mansfield",
+        "brand": "Gulf",
+        "lat": 53.1440,
+        "lon": -1.1970,
+        "address": "Nottingham Road, Mansfield NG18 4AA",
+        "amenities": ["shop", "air"],
+        "prices": {
+            "unleaded": 1.45,
+            "super_unleaded": 1.58,
+            "diesel": 1.52,
+            "premium_diesel": 1.62
+        },
+        "updated": "2026-02-12T08:30:00Z"
     }
 ]

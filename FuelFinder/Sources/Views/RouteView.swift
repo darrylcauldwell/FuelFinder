@@ -2,9 +2,9 @@ import SwiftUI
 import MapKit
 import CoreData
 
-// MARK: - RouteView (iPhone Main Map)
+// MARK: - NearbyView (iPhone Main Map + Station List)
 
-struct RouteView: View {
+struct NearbyView: View {
 
     @EnvironmentObject private var dataManager: FuelDataManager
     @EnvironmentObject private var locationService: LocationService
@@ -13,59 +13,85 @@ struct RouteView: View {
     @State private var cameraPosition: MapCameraPosition = .region(
         MKCoordinateRegion(
             center: LocationService.defaultUK,
-            span: MKCoordinateSpan(latitudeDelta: 0.5, longitudeDelta: 0.5)
+            span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
         )
     )
-    @State private var route: MKRoute?
-    @State private var selectedStation: StationWithScore?
-    @State private var showStationSheet = false
+    @State private var selectedStationDetail: StationWithScore?
+    @State private var showStationDetail = false
     @State private var showSettings = false
-    @State private var isSearchingRoute = false
-    @State private var routeTask: Task<Void, Never>?
 
-    // Route planning
-    @State private var originText = ""
-    @State private var destinationText = ""
-
-    // Settings
+    // Filters & sorting
     @State private var selectedFuelType: FuelType = .unleaded
-    @State private var maxDetourKm: Double = 2.0
+    @State private var sortOrder: StationSortOrder = .price
+    @State private var maxPricePence: Double = 200
+
+    // Map region tracking for re-query
+    @State private var lastQueryCenter: CLLocationCoordinate2D?
+    @State private var isInitialLoadComplete = false
+    @State private var showErrorAlert = false
+
+    /// Stations filtered by the user's max price setting.
+    private var filteredStations: [StationWithScore] {
+        let maxPounds = maxPricePence / 100.0
+        if maxPricePence >= 200 {
+            return dataManager.nearbyStations
+        }
+        return dataManager.nearbyStations.filter { $0.price <= maxPounds }
+    }
 
     var body: some View {
         ZStack {
             mapContent
 
             VStack(spacing: 0) {
-                routePlanningOverlay
+                topToolbar
                 Spacer()
                 if dataManager.isDataStale {
                     staleBanner
                 }
-                if !dataManager.stationsAlongRoute.isEmpty {
-                    bottomStatusBar
-                }
             }
 
-            if dataManager.isLoading || isSearchingRoute {
+            if dataManager.isLoading {
                 loadingOverlay
             }
         }
-        .sheet(isPresented: $showStationSheet) {
-            stationListSheet
+        .sheet(isPresented: .constant(true)) {
+            stationListPanel
+        }
+        .sheet(isPresented: $showStationDetail) {
+            if let station = selectedStationDetail {
+                StationDetailSheet(station: station, viewContext: viewContext)
+            }
         }
         .sheet(isPresented: $showSettings) {
             settingsSheet
         }
-        .alert("Error", isPresented: .constant(dataManager.lastError != nil)) {
+        .alert("Error", isPresented: $showErrorAlert) {
             Button("OK") { dataManager.lastError = nil }
         } message: {
             Text(dataManager.lastError ?? "")
         }
+        .onChange(of: dataManager.lastError) { _, newValue in
+            if newValue != nil { showErrorAlert = true }
+        }
         .onAppear {
             locationService.requestPermission()
         }
-        .onDisappear {
-            routeTask?.cancel()
+        .task {
+            await loadNearbyStations()
+        }
+        .onChange(of: selectedFuelType) {
+            Task { await loadNearbyStations() }
+        }
+        .onChange(of: sortOrder) {
+            Task { await loadNearbyStations() }
+        }
+        .onChange(of: locationService.currentLocation) { old, newLocation in
+            // Re-centre and re-query when real location first arrives (nil → non-nil).
+            // Handles the case where .task fires before permission is granted.
+            guard old == nil, newLocation != nil else { return }
+            isInitialLoadComplete = false
+            Task { await loadNearbyStations() }
         }
     }
 
@@ -73,25 +99,17 @@ struct RouteView: View {
 
     private var mapContent: some View {
         Map(position: $cameraPosition) {
-            // User location
             UserAnnotation()
 
-            // Route polyline
-            if let route {
-                MapPolyline(route.polyline)
-                    .stroke(AppColors.routeLine, lineWidth: 5)
-            }
-
-            // Station pins with price badges
-            ForEach(dataManager.stationsAlongRoute) { station in
+            ForEach(filteredStations) { station in
                 Annotation(
                     station.formattedPrice,
                     coordinate: station.coordinate
                 ) {
                     StationPinView(station: station)
                         .onTapGesture {
-                            selectedStation = station
-                            showStationSheet = true
+                            selectedStationDetail = station
+                            showStationDetail = true
                         }
                 }
             }
@@ -102,64 +120,44 @@ struct RouteView: View {
             MapScaleView()
         }
         .mapStyle(.standard(elevation: .realistic))
-    }
-
-    // MARK: - Route Planning Overlay
-
-    private var routePlanningOverlay: some View {
-        VStack(spacing: Spacing.sm) {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: "circle.fill")
-                    .foregroundStyle(AppColors.active)
-                    .font(.caption2)
-                TextField("Origin", text: $originText)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.subheadline)
-            }
-
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: "mappin.circle.fill")
-                    .foregroundStyle(AppColors.priceExpensive)
-                    .font(.caption2)
-                TextField("Destination", text: $destinationText)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.subheadline)
-            }
-
-            HStack(spacing: Spacing.md) {
-                Button {
-                    routeTask = Task { await planRoute() }
-                } label: {
-                    Label("Plan Route", systemImage: "arrow.triangle.turn.up.right.diamond")
-                        .font(.subheadline.weight(.semibold))
-                }
-                .buttonStyle(GlassButtonStyle(tint: AppColors.primary))
-                .disabled(originText.isEmpty || destinationText.isEmpty)
-
-                Button {
-                    showSettings = true
-                } label: {
-                    Image(systemName: "gear")
-                        .font(.title3)
-                }
-                .buttonStyle(GlassButtonStyle(tint: AppColors.secondary))
-
-                Spacer()
-
-                if route != nil {
-                    Button {
-                        routeTask = Task { await findFuelStops() }
-                    } label: {
-                        Label("Find Fuel", systemImage: "fuelpump")
-                            .font(.subheadline.weight(.semibold))
-                    }
-                    .buttonStyle(GlassButtonStyle(tint: AppColors.priceCheap))
-                }
-            }
+        .onMapCameraChange(frequency: .onEnd) { context in
+            handleMapRegionChange(context.region)
         }
-        .glassCard(material: .regular, cornerRadius: CornerRadius.lg, shadowRadius: 10, padding: Spacing.lg)
-        .padding()
     }
+
+    // MARK: - Top Toolbar
+
+    private var topToolbar: some View {
+        HStack(spacing: Spacing.sm) {
+            Picker("Fuel", selection: $selectedFuelType) {
+                ForEach(FuelType.allCases) { type in
+                    Text(type.shortName).tag(type)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            Picker("Sort", selection: $sortOrder) {
+                ForEach(StationSortOrder.allCases) { order in
+                    Text(order.displayName).tag(order)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 160)
+
+            Button {
+                showSettings = true
+            } label: {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.title3)
+            }
+            .buttonStyle(GlassButtonStyle(tint: AppColors.secondary))
+        }
+        .glassCard(material: .thin, cornerRadius: CornerRadius.md, shadowRadius: 6, padding: Spacing.md)
+        .padding(.horizontal)
+        .padding(.top, Spacing.sm)
+    }
+
+    // MARK: - Stale Banner
 
     private var staleBanner: some View {
         HStack(spacing: Spacing.sm) {
@@ -169,7 +167,7 @@ struct RouteView: View {
             Spacer()
             Button("Refresh") {
                 Task {
-                    await dataManager.refreshStations(near: locationService.effectiveLocation)
+                    await dataManager.refreshStations()
                 }
             }
             .font(.caption.weight(.semibold))
@@ -182,24 +180,7 @@ struct RouteView: View {
         .padding(.horizontal)
     }
 
-    private var bottomStatusBar: some View {
-        HStack {
-            let count = dataManager.stationsAlongRoute.count
-            Image(systemName: "fuelpump.fill")
-                .foregroundStyle(AppColors.primary)
-            Text("\(count) station\(count == 1 ? "" : "s") found")
-                .font(.subheadline.weight(.medium))
-            Spacer()
-            Button("View List") {
-                showStationSheet = true
-            }
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(AppColors.primary)
-        }
-        .glassCard(material: .thin, cornerRadius: CornerRadius.md, shadowRadius: 6, padding: Spacing.md)
-        .padding(.horizontal)
-        .padding(.bottom, Spacing.sm)
-    }
+    // MARK: - Loading Overlay
 
     private var loadingOverlay: some View {
         VStack {
@@ -207,7 +188,7 @@ struct RouteView: View {
             HStack(spacing: Spacing.sm) {
                 ProgressView()
                     .tint(AppColors.primary)
-                Text("Searching...")
+                Text("Loading stations...")
                     .font(.subheadline)
             }
             .glassCard(material: .thin, cornerRadius: CornerRadius.pill, padding: Spacing.md)
@@ -215,28 +196,45 @@ struct RouteView: View {
         }
     }
 
-    // MARK: - Station List Sheet
+    // MARK: - Station List Panel (Persistent Bottom Sheet)
 
-    private var stationListSheet: some View {
+    private var stationListPanel: some View {
         NavigationStack {
             List {
-                ForEach(dataManager.stationsAlongRoute) { station in
-                    StationRowView(station: station) {
-                        routeTask = Task { await addStopAndReroute(station: station) }
+                if filteredStations.isEmpty && !dataManager.isLoading {
+                    ContentUnavailableView(
+                        "No Stations Found",
+                        systemImage: "fuelpump.slash",
+                        description: Text("Try zooming out or changing fuel type.")
+                    )
+                } else {
+                    ForEach(filteredStations) { station in
+                        NearbyStationRowView(station: station)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedStationDetail = station
+                                showStationDetail = true
+                            }
+                            .swipeActions(edge: .trailing) {
+                                Button {
+                                    openInAppleMaps(station: station)
+                                } label: {
+                                    Label("Directions", systemImage: "arrow.triangle.turn.up.right.diamond")
+                                }
+                                .tint(AppColors.primary)
+                            }
                     }
                 }
             }
             .glassList()
-            .navigationTitle("Fuel Stops")
+            .navigationTitle("\(filteredStations.count) Stations Nearby")
             .navigationBarTitleDisplayMode(.inline)
             .glassNavigation()
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { showStationSheet = false }
-                }
-            }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.fraction(0.3), .medium, .large])
+        .presentationDragIndicator(.visible)
+        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+        .interactiveDismissDisabled()
     }
 
     // MARK: - Settings Sheet
@@ -257,14 +255,19 @@ struct RouteView: View {
 
                 Section {
                     VStack(alignment: .leading, spacing: Spacing.sm) {
-                        Text(String(format: "%.1f km", maxDetourKm))
+                        Text(maxPricePence >= 200 ? "No limit" : String(format: "%.1fp", maxPricePence))
                             .font(.headline)
                             .foregroundStyle(AppColors.primary)
-                        Slider(value: $maxDetourKm, in: 0.5...10.0, step: 0.5)
+                        Slider(value: $maxPricePence, in: 100...200, step: 1)
                             .tint(AppColors.primary)
+                            .accessibilityLabel("Maximum price filter")
+                            .accessibilityValue(maxPricePence >= 200 ? "No limit" : String(format: "%.0f pence", maxPricePence))
+                        Text("Slide left to hide expensive stations")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 } header: {
-                    GlassSectionHeader("Maximum Detour", icon: "arrow.triangle.branch")
+                    GlassSectionHeader("Maximum Price", icon: "sterlingsign.circle")
                 }
 
                 Section {
@@ -273,7 +276,7 @@ struct RouteView: View {
                     }
                     Button("Refresh Prices") {
                         Task {
-                            await dataManager.refreshStations(near: locationService.effectiveLocation)
+                            await dataManager.refreshStations()
                         }
                     }
                 } header: {
@@ -281,7 +284,7 @@ struct RouteView: View {
                 }
             }
             .glassList()
-            .navigationTitle("Settings")
+            .navigationTitle("Filters")
             .navigationBarTitleDisplayMode(.inline)
             .glassNavigation()
             .toolbar {
@@ -295,95 +298,58 @@ struct RouteView: View {
     // MARK: - Actions
 
     @MainActor
-    private func planRoute() async {
-        isSearchingRoute = true
-        defer { isSearchingRoute = false }
+    private func loadNearbyStations() async {
+        let coord = locationService.effectiveLocation
+        lastQueryCenter = coord
 
-        let request = MKDirections.Request()
-        let geocoder = CLGeocoder()
-
-        do {
-            let originPlacemarks = try await geocoder.geocodeAddressString(originText)
-            guard let originPlacemark = originPlacemarks.first else {
-                dataManager.lastError = "Could not find origin location"
-                return
-            }
-            request.source = MKMapItem(placemark: MKPlacemark(placemark: originPlacemark))
-
-            let destPlacemarks = try await geocoder.geocodeAddressString(destinationText)
-            guard let destPlacemark = destPlacemarks.first else {
-                dataManager.lastError = "Could not find destination"
-                return
-            }
-            request.destination = MKMapItem(placemark: MKPlacemark(placemark: destPlacemark))
-        } catch {
-            dataManager.lastError = "Geocoding failed: \(error.localizedDescription)"
-            return
-        }
-
-        request.transportType = .automobile
-        request.requestsAlternateRoutes = false
-
-        do {
-            let response = try await MKDirections(request: request).calculate()
-            if let firstRoute = response.routes.first {
-                route = firstRoute
-                let rect = firstRoute.polyline.boundingMapRect
-                cameraPosition = .rect(rect.insetBy(dx: -rect.size.width * 0.1, dy: -rect.size.height * 0.1))
-            }
-        } catch {
-            dataManager.lastError = "Route calculation failed: \(error.localizedDescription)"
-        }
-    }
-
-    private func findFuelStops() async {
-        guard let route else { return }
-        await dataManager.findStationsAlongRoute(
-            route: route,
+        await dataManager.findNearbyStations(
+            coordinate: coord,
             fuelType: selectedFuelType.rawValue,
-            maxDetourKm: maxDetourKm
+            radiusKm: 16,
+            limit: 50,
+            sortBy: sortOrder
         )
+
+        if !isInitialLoadComplete {
+            cameraPosition = .region(MKCoordinateRegion(
+                center: coord,
+                span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
+            ))
+            isInitialLoadComplete = true
+        }
     }
 
-    @MainActor
-    private func addStopAndReroute(station: StationWithScore) async {
-        showStationSheet = false
-        guard let currentRoute = route else { return }
-
-        let pointCount = currentRoute.polyline.pointCount
-        guard pointCount > 1 else { return }
-
-        let originCoord = currentRoute.polyline.points()[0].coordinate
-        let destCoord = currentRoute.polyline.points()[pointCount - 1].coordinate
-
-        let stationMapItem = MKMapItem(placemark: MKPlacemark(coordinate: station.coordinate))
-        stationMapItem.name = station.name
-
-        // Leg 1: Origin → Station
-        let req1 = MKDirections.Request()
-        req1.source = MKMapItem(placemark: MKPlacemark(coordinate: originCoord))
-        req1.destination = stationMapItem
-        req1.transportType = .automobile
-
-        // Leg 2: Station → Destination
-        let req2 = MKDirections.Request()
-        req2.source = stationMapItem
-        req2.destination = MKMapItem(placemark: MKPlacemark(coordinate: destCoord))
-        req2.transportType = .automobile
-
-        do {
-            let response1 = try await MKDirections(request: req1).calculate()
-            let response2 = try await MKDirections(request: req2).calculate()
-
-            if let route1 = response1.routes.first {
-                self.route = route1
-                let rect = route1.polyline.boundingMapRect
-                    .union(response2.routes.first?.polyline.boundingMapRect ?? route1.polyline.boundingMapRect)
-                cameraPosition = .rect(rect.insetBy(dx: -rect.size.width * 0.1, dy: -rect.size.height * 0.1))
-            }
-        } catch {
-            dataManager.lastError = "Re-routing failed: \(error.localizedDescription)"
+    private func handleMapRegionChange(_ region: MKCoordinateRegion) {
+        let newCenter = CLLocation(latitude: region.center.latitude, longitude: region.center.longitude)
+        let lastCenter: CLLocation
+        if let prev = lastQueryCenter {
+            lastCenter = CLLocation(latitude: prev.latitude, longitude: prev.longitude)
+        } else {
+            lastCenter = CLLocation(latitude: LocationService.defaultUK.latitude, longitude: LocationService.defaultUK.longitude)
         }
+
+        guard newCenter.distance(from: lastCenter) > 2000 else { return }
+        lastQueryCenter = region.center
+
+        let radiusKm = max(16, region.span.latitudeDelta * 111.0 / 2.0)
+
+        Task {
+            await dataManager.findNearbyStations(
+                coordinate: region.center,
+                fuelType: selectedFuelType.rawValue,
+                radiusKm: radiusKm,
+                limit: 50,
+                sortBy: sortOrder
+            )
+        }
+    }
+
+    private func openInAppleMaps(station: StationWithScore) {
+        let mapItem = MKMapItem(placemark: MKPlacemark(coordinate: station.coordinate))
+        mapItem.name = station.name
+        mapItem.openInMaps(launchOptions: [
+            MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
+        ])
     }
 }
 
@@ -407,19 +373,18 @@ struct StationPinView: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(station.name), \(station.formattedPrice), \(station.formattedDetour)")
+        .accessibilityLabel("\(station.name), \(station.formattedPrice), \(station.formattedDistance)")
+        .accessibilityHint("Tap to view station details")
     }
 }
 
-// MARK: - Station Row View (Glass Design)
+// MARK: - Nearby Station Row View
 
-struct StationRowView: View {
+struct NearbyStationRowView: View {
     let station: StationWithScore
-    let onAddStop: () -> Void
 
     var body: some View {
         HStack(spacing: Spacing.md) {
-            // Price tier indicator
             Circle()
                 .fill(AppColors.priceTier(station.priceTier))
                 .frame(width: 12, height: 12)
@@ -428,6 +393,7 @@ struct StationRowView: View {
                 HStack(spacing: Spacing.xs) {
                     Text(station.name)
                         .font(.headline)
+                        .lineLimit(1)
                     if station.isFavourite {
                         Image(systemName: "star.fill")
                             .font(.caption)
@@ -439,32 +405,146 @@ struct StationRowView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
-                Text(station.formattedDetour)
+                Text(station.formattedDistance)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: Spacing.xs) {
-                FuelPriceBadge(station.formattedPrice, tier: station.priceTier, size: .large)
-
-                Button("Add Stop", action: onAddStop)
-                    .buttonStyle(GlassButtonStyle(tint: AppColors.primary))
-                    .controlSize(.small)
-            }
+            FuelPriceBadge(station.formattedPrice, tier: station.priceTier, size: .large)
         }
         .padding(.vertical, Spacing.xs)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(station.name), \(station.brand), \(station.formattedPrice), \(station.formattedDetour)")
-        .accessibilityAction(named: "Add Stop", onAddStop)
+        .accessibilityLabel("\(station.name), \(station.brand), \(station.formattedPrice), \(station.formattedDistance)")
+    }
+}
+
+// MARK: - Station Detail Sheet
+
+struct StationDetailSheet: View {
+    let station: StationWithScore
+    let viewContext: NSManagedObjectContext
+    @Environment(\.dismiss) private var dismiss
+    @State private var isFavourite: Bool
+    @State private var coreStation: Station?
+
+    init(station: StationWithScore, viewContext: NSManagedObjectContext) {
+        self.station = station
+        self.viewContext = viewContext
+        self._isFavourite = State(initialValue: station.isFavourite)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: Spacing.lg) {
+                    // Header
+                    VStack(spacing: Spacing.sm) {
+                        Text(station.brand)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.secondary)
+                        Text(station.name)
+                            .font(.title2.weight(.bold))
+                            .multilineTextAlignment(.center)
+                        Text(station.address)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                        GlassChip(station.formattedDistance, icon: "location", color: AppColors.primary)
+                    }
+                    .padding(.top)
+
+                    // Selected fuel price (prominent)
+                    FuelPriceBadge(station.formattedPrice, tier: station.priceTier, size: .large)
+
+                    // All fuel prices
+                    allPricesGrid
+
+                    // Get Directions button
+                    Button {
+                        openInAppleMaps()
+                    } label: {
+                        Label("Get Directions", systemImage: "arrow.triangle.turn.up.right.diamond")
+                    }
+                    .buttonStyle(PrimaryActionButtonStyle(color: AppColors.primary))
+                    .padding(.horizontal)
+
+                    // Favourite toggle
+                    Button {
+                        toggleFavourite()
+                    } label: {
+                        Label(
+                            isFavourite ? "Remove from Favourites" : "Add to Favourites",
+                            systemImage: isFavourite ? "star.fill" : "star"
+                        )
+                    }
+                    .buttonStyle(GlassButtonStyle(tint: AppColors.warning))
+                    .accessibilityHint(isFavourite ? "Removes this station from your favourites" : "Saves this station to your favourites")
+                    .padding(.horizontal)
+                }
+                .padding(.bottom, Spacing.xl)
+            }
+            .navigationTitle("Station Details")
+            .navigationBarTitleDisplayMode(.inline)
+            .glassNavigation()
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .task { coreStation = fetchStation() }
+        .presentationDetents([.medium, .large])
+    }
+
+    private var allPricesGrid: some View {
+        LazyVGrid(columns: [
+            GridItem(.flexible()),
+            GridItem(.flexible())
+        ], spacing: Spacing.md) {
+            ForEach(FuelType.allCases) { fuelType in
+                let price = coreStation?.price(for: fuelType.rawValue)
+                if let price, price > 0 {
+                    GlassStatCard(
+                        title: fuelType.displayName,
+                        value: String(format: "£%.2f", price),
+                        icon: "fuelpump",
+                        tint: fuelType.color
+                    )
+                }
+            }
+        }
+        .padding(.horizontal)
+    }
+
+    private func fetchStation() -> Station? {
+        let request: NSFetchRequest<Station> = Station.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", station.stationID)
+        request.fetchLimit = 1
+        return try? viewContext.fetch(request).first
+    }
+
+    private func toggleFavourite() {
+        guard let s = coreStation else { return }
+        s.isFavourite.toggle()
+        isFavourite = s.isFavourite
+        try? viewContext.save()
+    }
+
+    private func openInAppleMaps() {
+        let mapItem = MKMapItem(placemark: MKPlacemark(coordinate: station.coordinate))
+        mapItem.name = station.name
+        mapItem.openInMaps(launchOptions: [
+            MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
+        ])
     }
 }
 
 // MARK: - Preview
 
 #Preview {
-    RouteView()
+    NearbyView()
         .environmentObject(FuelDataManager(coreDataStack: .preview))
         .environmentObject(LocationService())
         .environment(\.managedObjectContext, CoreDataStack.preview.viewContext)
