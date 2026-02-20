@@ -1,29 +1,32 @@
-Find the cheapest fuel along your route with Fuel Finder — the smart way to save on every journey.
+Find the cheapest fuel near you or along your route with Fuel Finder — the smart way to save on every journey.
 
-Fuel Finder uses live UK Government fuel price data to help you compare petrol and diesel prices at thousands of forecourts across the UK. Plan your route, see fuel stations along the way, and choose the best value stop with a single tap.
+Fuel Finder shows you live petrol and diesel prices at thousands of UK forecourts. Browse nearby stations, plan routes to see fuel stops along the way, and compare prices with a single tap.
 
 KEY FEATURES
 
-Route-Based Search
-Enter your origin and destination, and Fuel Finder shows you the cheapest fuel stations along your route — ranked by price and detour distance so you never waste time or money.
+Map & List Views
+See nearby fuel stations on an interactive map or browse as a sorted list. Switch between price and distance sorting to find the best value or closest stop.
 
-Live Price Comparison
-Powered by the official UK Fuel Finder government data feed, prices are refreshed regularly so you always see the latest forecourt pricing.
+Route Planning
+Enter a destination and Fuel Finder shows you fuel stations along your route. Adjust the search radius from 1 to 5 miles to see more or fewer options. Each station shows the detour distance so you can make informed decisions.
+
+Live Price Data
+Powered by UK retailer open data feeds published under the CMA fuel price transparency scheme. Prices are updated regularly across 12 major retailers including Shell, BP, Tesco, Sainsbury's, Morrisons, Asda, and more.
 
 Smart Scoring
-Every station is scored using a blend of price and detour distance. Green badges highlight the cheapest options; amber and red show mid-range and expensive stations at a glance.
+Every station is scored using a blend of price and distance. Green badges highlight the cheapest options; amber and red show mid-range and expensive stations at a glance.
 
-Add Stop & Re-Route
-Found a great price? Tap "Add Stop" to re-route via that station — Fuel Finder recalculates your journey automatically.
+CarPlay Integration
+Use Fuel Finder on your car's display with native CarPlay support. Browse stations on a map or list, view prices, change fuel type and sort order, and hand off navigation to Apple Maps — all without touching your phone.
 
-CarPlay Support
-Use Fuel Finder on your car's display. Browse nearby stations, view prices, and navigate to your chosen stop — all without touching your phone.
+Favourites & iCloud Sync
+Star your preferred stations and access them across all your devices. Favourites sync automatically via iCloud.
 
-Favourites & CloudKit Sync
-Star your preferred stations and access them across all your devices via iCloud.
+Multiple Fuel Types
+Compare prices for unleaded, super unleaded, diesel, and premium diesel. Switch fuel types instantly to see updated pricing.
 
 Designed for the UK
-Built specifically for UK drivers using official government fuel price data. Covers petrol (unleaded & super unleaded) and diesel (standard & premium).
+Built specifically for UK drivers using official retailer open data. No API keys required, no subscriptions, completely free to use.
 
 PRIVACY
-Fuel Finder uses your location only to find nearby stations and calculate routes. No tracking, no ads, no data sold to third parties.
+Fuel Finder uses your location only to find nearby stations and calculate routes. No tracking, no ads, no data sold to third parties. Your location data never leaves your device except to calculate routes via Apple's MapKit framework.

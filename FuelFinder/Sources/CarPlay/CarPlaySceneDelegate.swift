@@ -38,7 +38,8 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
         self.interfaceController = interfaceController
 
         let dataManager = sharedDataManager
-        let manager = FuelCarPlayManager(dataManager: dataManager)
+        let routeManager = RouteManager()
+        let manager = FuelCarPlayManager(dataManager: dataManager, routeManager: routeManager)
         manager.setInterfaceController(interfaceController)
         self.carPlayManager = manager
 
@@ -46,16 +47,23 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
         let rootTemplate = manager.buildRootTemplate()
         interfaceController.setRootTemplate(rootTemplate, animated: false, completion: nil)
 
-        // Fetch nearby stations for CarPlay
+        // Start with default UK location (CarPlay will use vehicle's location in production)
+        let location = LocationService.defaultUK
+        manager.updateLocation(location)
+
+        // Fetch nearby stations for CarPlay with unleaded fuel type (default)
         refreshTask = Task {
-            await dataManager.findNearbyStations(coordinate: LocationService.defaultUK)
+            await dataManager.findNearbyStations(
+                coordinate: location,
+                fuelType: "unleaded"
+            )
         }
 
-        // Observe data changes to refresh the Nearby tab
+        // Observe data changes to refresh all CarPlay templates
         dataManager.$nearbyStations
             .receive(on: DispatchQueue.main)
             .sink { [weak manager] _ in
-                manager?.refreshNearbyTab()
+                manager?.refreshNearbyData()
             }
             .store(in: &cancellables)
     }

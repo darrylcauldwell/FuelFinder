@@ -1,1 +1,47 @@
-The app launches with mock data enabled by default (Settings > Use Mock Data toggle). This demonstrates all features including route planning, fuel station display, price comparison, and the Add Stop re-routing flow. To test with live data, disable the mock data toggle — this requires a valid UK Fuel Finder API credential.
+TESTING INSTRUCTIONS:
+
+The app works immediately without any configuration. On first launch, it requests location permission and then fetches live fuel price data from 12 UK retailer open data feeds. All features are functional in the simulator or on device.
+
+iPhone App - 5 Tabs:
+1. Map: Interactive map with nearby fuel stations
+2. List: Sortable list view of nearby stations
+3. Favourites: Starred stations synced via iCloud
+4. Route: Destination search with route planning
+5. Settings: Data refresh and location status
+
+CarPlay App - 4 Tabs:
+1. Map: Point of interest template with fuel stations
+2. List: Station list with prices
+3. Favourites: Quick access to saved stations
+4. Settings: Fuel type selector, sort order, route controls
+
+CARPLAY FUELING ENTITLEMENT JUSTIFICATION:
+
+Fuel Finder integrates with CarPlay using the CPTemplateApplicationSceneDelegate framework (com.apple.developer.carplay-fueling entitlement) to enhance driver safety and convenience:
+
+1. SAFETY: Drivers can find and navigate to fuel stations without touching their phone while driving. All interactions use CarPlay's native templates designed for in-vehicle use.
+
+2. FRAMEWORK INTEGRATION: The app uses Apple's CarPlay Fueling framework with native templates:
+   - CPTabBarTemplate for 4-tab navigation
+   - CPListTemplate for station lists and settings
+   - CPPointOfInterestTemplate for map-based station browsing
+   - Proper delegation via CPTemplateApplicationSceneDelegate
+
+3. FUNCTIONALITY:
+   - Browse nearby fuel stations on car display
+   - Compare live prices across 12 UK retailers
+   - Select fuel type (unleaded/super unleaded/diesel/premium diesel)
+   - Sort by price or distance
+   - View favourites synced via iCloud
+   - Adjust route search radius (1-5 miles)
+   - Seamlessly hand off navigation to Apple Maps
+
+4. ROUTE AWARENESS: Shows fuel stations along planned routes with configurable search corridor, helping drivers plan fuel stops on long journeys.
+
+5. NO NAVIGATION REPLACEMENT: The app does NOT attempt to replace Apple Maps navigation. It hands off to Maps for all turn-by-turn directions, respecting Apple's navigation guidelines.
+
+DATA SOURCE:
+All fuel prices are sourced from UK retailer open data feeds published under the CMA (Competition and Markets Authority) fuel price transparency scheme. No API keys or authentication required. The app fetches data directly from 12 major retailers: Asda, BP, Esso, JET, Morrisons, Moto, Motor Fuel Group, Rontec, Sainsbury's, SGN, Shell, and Tesco.
+
+PRIVACY:
+Location data is used only to find nearby stations and calculate routes. No data is sent to third-party servers. Routes are calculated using Apple's MapKit MKDirections API.

@@ -12,6 +12,10 @@
 		A1000003 /* CoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000003; };
 		A1000004 /* FuelDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000004; };
 		A1000005 /* RouteStationFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000005; };
+		A10000RM /* RouteManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000RM; };
+		A10000DSV /* DestinationSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000DSV; };
+		A10000RPV /* RoutePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000RPV; };
+		A10000RTV /* RouteTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000RTV; };
 		A1000006 /* RouteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000006; };
 		A1000007 /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000007; };
 		A1000008 /* FuelCarPlayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000008; };
@@ -53,6 +57,10 @@
 		B1000003 /* CoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataStack.swift; sourceTree = "<group>"; };
 		B1000004 /* FuelDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuelDataManager.swift; sourceTree = "<group>"; };
 		B1000005 /* RouteStationFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStationFinder.swift; sourceTree = "<group>"; };
+		B10000RM /* RouteManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteManager.swift; sourceTree = "<group>"; };
+		B10000DSV /* DestinationSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DestinationSearchView.swift; sourceTree = "<group>"; };
+		B10000RPV /* RoutePreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePreviewView.swift; sourceTree = "<group>"; };
+		B10000RTV /* RouteTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteTabView.swift; sourceTree = "<group>"; };
 		B1000006 /* RouteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteView.swift; sourceTree = "<group>"; };
 		B1000007 /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlaySceneDelegate.swift; sourceTree = "<group>"; };
 		B1000008 /* FuelCarPlayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuelCarPlayManager.swift; sourceTree = "<group>"; };
@@ -167,6 +175,7 @@
 			isa = PBXGroup;
 			children = (
 				B1000005 /* RouteStationFinder.swift */,
+				B10000RM /* RouteManager.swift */,
 			);
 			path = RouteEngine;
 			sourceTree = "<group>";
@@ -175,8 +184,19 @@
 			isa = PBXGroup;
 			children = (
 				B1000006 /* RouteView.swift */,
+				G10000RT /* RouteTab */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		G10000RT /* RouteTab */ = {
+			isa = PBXGroup;
+			children = (
+				B10000RTV /* RouteTabView.swift */,
+				B10000DSV /* DestinationSearchView.swift */,
+				B10000RPV /* RoutePreviewView.swift */,
+			);
+			path = RouteTab;
 			sourceTree = "<group>";
 		};
 		G10000C1 /* CarPlay */ = {
@@ -372,7 +392,11 @@
 				A1000003 /* CoreDataStack.swift in Sources */,
 				A1000004 /* FuelDataManager.swift in Sources */,
 				A1000005 /* RouteStationFinder.swift in Sources */,
+				A10000RM /* RouteManager.swift in Sources */,
 				A1000006 /* RouteView.swift in Sources */,
+				A10000RTV /* RouteTabView.swift in Sources */,
+				A10000DSV /* DestinationSearchView.swift in Sources */,
+				A10000RPV /* RoutePreviewView.swift in Sources */,
 				A1000007 /* CarPlaySceneDelegate.swift in Sources */,
 				A1000008 /* FuelCarPlayManager.swift in Sources */,
 				A1000009 /* Station+Convenience.swift in Sources */,
@@ -543,7 +567,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = FuelFinder/Resources/FuelFinder.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = N6BK2WX94Z;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = FuelFinder/Resources/Info.plist;
@@ -575,7 +599,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = FuelFinder/Resources/FuelFinder.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = N6BK2WX94Z;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = FuelFinder/Resources/Info.plist;
@@ -605,7 +629,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0.0;
@@ -624,7 +648,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0.0;
@@ -642,7 +666,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0.0;
@@ -660,7 +684,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0.0;

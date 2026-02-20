@@ -7,6 +7,7 @@ struct ContentView: View {
 
     @EnvironmentObject private var dataManager: FuelDataManager
     @EnvironmentObject private var locationService: LocationService
+    @StateObject private var routeManager = RouteManager()
     @State private var selectedTab = 0
     @State private var selectedFuelType: FuelType = .unleaded
 
@@ -39,6 +40,16 @@ struct ContentView: View {
             }
             .tag(2)
 
+            RouteTabView(
+                routeManager: routeManager,
+                dataManager: dataManager,
+                locationService: locationService
+            )
+            .tabItem {
+                Label("Route", systemImage: "map.circle")
+            }
+            .tag(3)
+
             NavigationStack {
                 AppSettingsView()
                     .glassNavigation()
@@ -46,7 +57,7 @@ struct ContentView: View {
             .tabItem {
                 Label("Settings", systemImage: "gear")
             }
-            .tag(3)
+            .tag(4)
         }
         .tint(AppColors.primary)
         .task {

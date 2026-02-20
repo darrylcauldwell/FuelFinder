@@ -24,35 +24,29 @@ final class ScreenshotTests: XCTestCase {
         snapshot("01-NearbyMap")
     }
 
-    func test02_StationList() throws {
-        // Pull the persistent bottom sheet to medium detent and wait for rows
-        let sheet = app.otherElements["Station list"]
-        if sheet.waitForExistence(timeout: 5) {
-            sheet.swipeUp()
-        }
-        let firstStation = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'km'")).firstMatch
+    func test02_ListScreen() throws {
+        app.tabBars.buttons["List"].tap()
+        let firstStation = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'km' OR label CONTAINS 'mi'")).firstMatch
         _ = firstStation.waitForExistence(timeout: 10)
-        snapshot("02-StationList")
+        snapshot("02-List")
     }
 
-    func test03_FavouritesScreen() throws {
+    func test03_RouteSearchScreen() throws {
+        app.tabBars.buttons["Route"].tap()
+        let searchField = app.textFields["Search destination..."]
+        _ = searchField.waitForExistence(timeout: 5)
+        snapshot("03-RouteSearch")
+    }
+
+    func test04_FavouritesScreen() throws {
         app.tabBars.buttons["Favourites"].tap()
         _ = app.navigationBars["Favourites"].waitForExistence(timeout: 5)
-        snapshot("03-Favourites")
+        snapshot("04-Favourites")
     }
 
-    func test04_SettingsScreen() throws {
+    func test05_SettingsScreen() throws {
         app.tabBars.buttons["Settings"].tap()
         _ = app.navigationBars["Settings"].waitForExistence(timeout: 5)
-        snapshot("04-Settings")
-    }
-
-    func test05_FiltersScreen() throws {
-        let filterButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'slider' OR label CONTAINS 'Filters'")).element(boundBy: 0)
-        if filterButton.waitForExistence(timeout: 5) {
-            filterButton.tap()
-            _ = app.navigationBars["Filters"].waitForExistence(timeout: 3)
-            snapshot("05-Filters")
-        }
+        snapshot("05-Settings")
     }
 }

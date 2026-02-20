@@ -180,6 +180,43 @@ final class FuelDataManager: ObservableObject {
         nearbyStations = results
     }
 
+    /// Finds stations along a route corridor.
+    func findStationsAlongRoute(
+        route: MKRoute,
+        corridorRadiusMeters: Double = 3000,
+        fuelType: String = "unleaded",
+        currentLocation: CLLocationCoordinate2D,
+        limit: Int = 50,
+        sortBy: StationSortOrder = .price
+    ) async {
+        guard !nearbySearchInFlight else { return }
+        nearbySearchInFlight = true
+        defer { nearbySearchInFlight = false }
+
+        isLoading = true
+        defer { isLoading = false }
+
+        await refreshStationsIfNeeded()
+
+        var results = routeFinder.findStationsAlongRoute(
+            route: route,
+            corridorRadiusMeters: corridorRadiusMeters,
+            fuelType: fuelType,
+            currentLocation: currentLocation,
+            limit: limit
+        )
+
+        switch sortBy {
+        case .price:
+            results.sort { $0.price < $1.price }
+        case .distance:
+            // In route mode, sort by detour time instead of distance
+            results.sort { $0.estimatedDetourMinutes < $1.estimatedDetourMinutes }
+        }
+
+        nearbyStations = results
+    }
+
     /// Checks if cached data is stale and updates the flag.
     func checkStaleness() {
         guard let last = lastRefresh else {

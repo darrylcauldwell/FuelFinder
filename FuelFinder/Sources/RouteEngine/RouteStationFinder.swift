@@ -67,6 +67,7 @@ final class RouteStationFinder: Sendable {
 
     // MARK: - Public: Nearby Search
 
+    /// Finds stations near a single point (no route).
     func findNearbyStations(
         coordinate: CLLocationCoordinate2D,
         radiusKm: Double,
@@ -112,6 +113,121 @@ final class RouteStationFinder: Sendable {
         assignPriceTiers(&normalised)
         normalised.sort { $0.score < $1.score }
         return Array(normalised.prefix(limit))
+    }
+
+    // MARK: - Public: Route Corridor Search
+
+    /// Finds stations within a corridor along a route polyline.
+    /// - Parameters:
+    ///   - route: The MKRoute to search along
+    ///   - corridorRadiusMeters: Maximum distance from route (default 3km ≈ 2 miles)
+    ///   - fuelType: Fuel type to filter by
+    ///   - currentLocation: Current user location for detour calculation
+    ///   - limit: Maximum number of stations to return
+    func findStationsAlongRoute(
+        route: MKRoute,
+        corridorRadiusMeters: Double = 3000,
+        fuelType: String,
+        currentLocation: CLLocationCoordinate2D,
+        limit: Int = 20
+    ) -> [StationWithScore] {
+        // Extract route points
+        let polyline = route.polyline
+        let pointCount = polyline.pointCount
+        let points = polyline.points()
+
+        // Convert MKMapPoints to CLLocations
+        var routeLocations: [CLLocation] = []
+        for i in 0..<pointCount {
+            let coordinate = points[i].coordinate
+            routeLocations.append(CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude))
+        }
+
+        // Create expanded bounding box around entire route
+        let corridorRadiusKm = corridorRadiusMeters / 1000.0
+        let boundingBox = expandedBoundingBox(for: routeLocations, marginKm: corridorRadiusKm)
+        let context = coreDataStack.newBackgroundContext()
+
+        var scored: [StationWithScore] = []
+        context.performAndWait {
+            // Fetch stations in bounding box
+            let stations = self.fetchStations(in: boundingBox, fuelType: fuelType, limit: limit * 10, context: context)
+
+            for station in stations {
+                guard let price = station.price(for: fuelType), price > 0 else { continue }
+
+                // Calculate minimum distance to route polyline
+                let stationPoint = MKMapPoint(station.coordinate)
+                var minDistanceToRoute = Double.infinity
+
+                for i in 0..<(pointCount - 1) {
+                    let p1 = points[i]
+                    let p2 = points[i + 1]
+                    let distance = self.distanceFromPoint(stationPoint, toLineSegmentBetween: p1, and: p2)
+                    minDistanceToRoute = min(minDistanceToRoute, distance)
+                }
+
+                // Filter: only include stations within corridor
+                guard minDistanceToRoute <= corridorRadiusMeters else { continue }
+
+                // Calculate distance from current location to station
+                let currentLoc = CLLocation(latitude: currentLocation.latitude, longitude: currentLocation.longitude)
+                let distanceKm = currentLoc.distance(from: station.location) / 1000.0
+
+                // Estimate detour time (distance to route * 2 + buffer)
+                let detourDistanceMeters = minDistanceToRoute * 2.0
+                let detourMinutes = (detourDistanceMeters / 1000.0) / self.averageSpeedKmH * 60 + 3.0
+
+                scored.append(StationWithScore(
+                    id: station.id ?? UUID().uuidString,
+                    stationID: station.id ?? "",
+                    name: station.name ?? "Unknown",
+                    brand: station.brand ?? "",
+                    coordinate: station.coordinate,
+                    address: station.address ?? "",
+                    price: price,
+                    fuelType: fuelType,
+                    distanceKm: distanceKm,
+                    estimatedDetourMinutes: detourMinutes,
+                    score: 0,
+                    isFavourite: station.isFavourite,
+                    priceTier: 0
+                ))
+            }
+        }
+
+        guard !scored.isEmpty else { return [] }
+
+        // Score based on price + detour time (not straight-line distance)
+        var normalised = normaliseAndScoreForRoute(scored)
+        assignPriceTiers(&normalised)
+        normalised.sort { $0.score < $1.score }
+        return Array(normalised.prefix(limit))
+    }
+
+    /// Calculates perpendicular distance from a point to a line segment (in meters).
+    private func distanceFromPoint(
+        _ point: MKMapPoint,
+        toLineSegmentBetween p1: MKMapPoint,
+        and p2: MKMapPoint
+    ) -> Double {
+        let dx = p2.x - p1.x
+        let dy = p2.y - p1.y
+
+        if dx == 0 && dy == 0 {
+            return point.distance(to: p1)
+        }
+
+        let t = ((point.x - p1.x) * dx + (point.y - p1.y) * dy) / (dx * dx + dy * dy)
+
+        if t < 0 {
+            return point.distance(to: p1)
+        } else if t > 1 {
+            return point.distance(to: p2)
+        } else {
+            let projection = MKMapPoint(x: p1.x + t * dx, y: p1.y + t * dy)
+            return point.distance(to: projection)
+        }
     }
 
     // MARK: - Bounding Box
@@ -204,6 +320,38 @@ final class RouteStationFinder: Sendable {
             let normPrice = priceRange > 0 ? (station.price - minPrice) / priceRange : 0
             let normDist = distRange > 0 ? (station.distanceKm - minDist) / distRange : 0
             let score = (1.0 - distanceWeight) * normPrice + distanceWeight * normDist
+
+            return StationWithScore(
+                id: station.id, stationID: station.stationID,
+                name: station.name, brand: station.brand,
+                coordinate: station.coordinate, address: station.address,
+                price: station.price, fuelType: station.fuelType,
+                distanceKm: station.distanceKm,
+                estimatedDetourMinutes: station.estimatedDetourMinutes,
+                score: score, isFavourite: station.isFavourite,
+                priceTier: 0
+            )
+        }
+    }
+
+    /// Scoring optimized for route mode: combines price and detour time.
+    private func normaliseAndScoreForRoute(_ stations: [StationWithScore]) -> [StationWithScore] {
+        let prices = stations.map(\.price)
+        let detours = stations.map(\.estimatedDetourMinutes)
+
+        let minPrice = prices.min() ?? 0
+        let maxPrice = prices.max() ?? 1
+        let priceRange = maxPrice - minPrice
+
+        let minDetour = detours.min() ?? 0
+        let maxDetour = detours.max() ?? 1
+        let detourRange = maxDetour - minDetour
+
+        return stations.map { station in
+            let normPrice = priceRange > 0 ? (station.price - minPrice) / priceRange : 0
+            let normDetour = detourRange > 0 ? (station.estimatedDetourMinutes - minDetour) / detourRange : 0
+            // Weight: 60% price, 40% detour time
+            let score = 0.6 * normPrice + 0.4 * normDetour
 
             return StationWithScore(
                 id: station.id, stationID: station.stationID,

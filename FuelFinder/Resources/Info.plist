@@ -9,7 +9,7 @@
     <key>CFBundleIdentifier</key>
     <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
     <key>CFBundleVersion</key>
-    <string>6</string>
+    <string>7</string>
     <key>CFBundleShortVersionString</key>
     <string>1.0.0</string>
     <key>CFBundlePackageType</key>
@@ -61,23 +61,11 @@
         <string>maps</string>
     </array>
 
-    <!-- App Transport Security (Fuel Finder API) -->
+    <!-- App Transport Security - All retailer feeds use HTTPS -->
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsArbitraryLoads</key>
         <false/>
-        <key>NSExceptionDomains</key>
-        <dict>
-            <key>fuel-finder.api.gov.uk</key>
-            <dict>
-                <key>NSIncludesSubdomains</key>
-                <true/>
-                <key>NSExceptionAllowsInsecureHTTPLoads</key>
-                <false/>
-                <key>NSExceptionRequiresForwardSecrecy</key>
-                <true/>
-            </dict>
-        </dict>
     </dict>
 
     <key>UIApplicationSupportsIndirectInputEvents</key>
