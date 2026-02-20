@@ -3,10 +3,10 @@
 <plist version="1.0">
 <dict>
     <!-- CarPlay Fueling Entitlement -->
-    <!-- Requires Apple approval before use in App Store / TestFlight builds. -->
+    <!-- TEMPORARILY DISABLED: Waiting for Apple approval -->
     <!-- Apply at https://developer.apple.com/contact/carplay/ -->
-    <!-- Enabled for simulator/development testing -->
-    <key>com.apple.developer.carplay-fueling</key>
-    <true/>
+    <!-- Will re-enable in v1.1 after approval -->
+    <!-- <key>com.apple.developer.carplay-fueling</key>
+    <true/> -->
 </dict>
 </plist>

@@ -9,7 +9,7 @@
     <key>CFBundleIdentifier</key>
     <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
     <key>CFBundleVersion</key>
-    <string>7</string>
+    <string>8</string>
     <key>CFBundleShortVersionString</key>
     <string>1.0.0</string>
     <key>CFBundlePackageType</key>
@@ -21,14 +21,14 @@
     <key>UILaunchScreen</key>
     <dict/>
 
-    <!-- CarPlay Scene Configuration -->
+    <!-- Scene Configuration - CarPlay TEMPORARILY DISABLED (waiting for Apple approval) -->
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>
         <true/>
         <key>UISceneConfigurations</key>
         <dict>
-            <!-- Main iPhone Window Scene (required alongside CarPlay scene) -->
+            <!-- Main iPhone Window Scene -->
             <key>UIWindowSceneSessionRoleApplication</key>
             <array>
                 <dict>
@@ -36,18 +36,21 @@
                     <string>Default Configuration</string>
                 </dict>
             </array>
-            <!-- CarPlay Scene (Fueling) -->
-            <key>CPTemplateApplicationSceneSessionRoleApplication</key>
-            <array>
-                <dict>
-                    <key>UISceneConfigurationName</key>
-                    <string>CarPlay Configuration</string>
-                    <key>UISceneDelegateClassName</key>
-                    <string>$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate</string>
-                </dict>
-            </array>
         </dict>
     </dict>
+
+    <!-- CarPlay Scene - DISABLED until entitlement approved
+         Re-enable in v1.1 after approval from https://developer.apple.com/contact/carplay/
+    <key>CPTemplateApplicationSceneSessionRoleApplication</key>
+    <array>
+        <dict>
+            <key>UISceneConfigurationName</key>
+            <string>CarPlay Configuration</string>
+            <key>UISceneDelegateClassName</key>
+            <string>$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate</string>
+        </dict>
+    </array>
+    -->
 
     <!-- Location -->
     <key>NSLocationWhenInUseUsageDescription</key>
